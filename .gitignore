@@ -1,7 +1,10 @@
 venv/
+__pycache__/
+*.pyc
 node_modules/
 .env
-__pycache__/
-media/
-*.sqlite3
+dist/
+build/
 .DS_Store
+*.sqlite3
+media/
