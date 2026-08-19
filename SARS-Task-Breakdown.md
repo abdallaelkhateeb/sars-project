@@ -1,10 +1,6 @@
 # Smart ATM Routing System (SARS) — Task Breakdown (4 People) — v2
 
-مبني على الـ Folder Structure النهائي (v2)، والـ ERD/Class Diagram/API Contract، وتصميم الـ 9 شاشات (Kiosk + Admin). كل شخص ياخد الملفات بتاعته، يفتح كل ملف يلاقي TODO list يوضح بالظبط هيكتب فيه إيه.
-
-## توزيع المسؤوليات
-
-| الشخص       | المسؤولية                                                                                                  |
+                                                                                          |
 | ----------- | ---------------------------------------------------------------------------------------------------------- |
 | **عبدالله** | Infra + Project Config + `accounts/` (Auth & RBAC) + 🆕 `kiosk/` scaffold + SCR-01                         |
 | **محمد**    | `atms/` (ATM model, heartbeat, transaction attempt, WebSocket, network-stats) + 🆕 `kiosk/` SCR-05, SCR-06 |
