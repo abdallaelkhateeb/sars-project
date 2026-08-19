@@ -1,0 +1,41 @@
+name: Frontend & Kiosk CI
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+      - "kiosk/**"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - "kiosk/**"
+
+jobs:
+  test-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - run: npm install
+    # - run: npm run lint (Uncomment when lint script is ready)
+    # - run: npm test (Uncomment when tests are ready)
+
+  test-kiosk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./kiosk
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - run: npm install
+    # - run: npm test (Uncomment when tests are ready)

@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart ATM Routing System — UI/UX Screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#101B2D;
+    --accent:#00C896;
+    --accent-deep:#04785A;
+    --accent-glow:rgba(0,200,150,.5);
+    --violet:#7C6CFF;
+    --violet-glow:rgba(124,108,255,.4);
+    --amber:#D98A15;
+    --amber-glow:rgba(217,138,21,.4);
+    --red:#E8455D;
+    --red-deep:#B71E3B;
+    --red-glow:rgba(232,69,93,.45);
+    --text:#101B2D;
+    --text-2:#57657C;
+    --text-3:#8B98AC;
+    --ease:cubic-bezier(.22,1,.36,1);
+
+    --glass:rgba(255,255,255,0.5);
+    --glass-strong:rgba(255,255,255,0.72);
+    --glass-soft:rgba(255,255,255,0.32);
+    --glass-border:rgba(255,255,255,0.65);
+    --glass-shadow:0 20px 50px -18px rgba(28,42,80,.22), 0 2px 10px -4px rgba(28,42,80,.08);
+    --glass-shadow-lg:0 30px 70px -20px rgba(28,42,80,.3), 0 4px 16px -4px rgba(28,42,80,.1);
+
+    --red-l:rgba(232,69,93,.1);
+    --red-line:rgba(232,69,93,.28);
+    --amber-l:rgba(217,138,21,.12);
+    --amber-line:rgba(217,138,21,.3);
+    --accent-l:rgba(0,200,150,.12);
+    --accent-line:rgba(0,200,150,.3);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'IBM Plex Sans Arabic', sans-serif;
+    color:var(--text);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+    background:linear-gradient(155deg, #EFF3FB 0%, #F3EFFB 45%, #EAF8F3 100%);
+    min-height:100vh;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  ::selection{background:var(--accent); color:#00281E;}
+
+  /* ===== Animated mesh background ===== */
+  .mesh{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none;}
+  .mesh span{
+    position:absolute; border-radius:50%; filter:blur(60px);
+    animation:drift 22s ease-in-out infinite alternate;
+  }
+  .mesh span:nth-child(1){width:560px; height:560px; background:radial-gradient(circle, var(--accent-glow), transparent 70%); top:-160px; left:-120px; opacity:.55;}
+  .mesh span:nth-child(2){width:620px; height:620px; background:radial-gradient(circle, var(--violet-glow), transparent 70%); top:10%; right:-200px; opacity:.5; animation-duration:28s; animation-delay:-6s;}
+  .mesh span:nth-child(3){width:520px; height:520px; background:radial-gradient(circle, var(--red-glow), transparent 70%); bottom:0%; left:8%; opacity:.32; animation-duration:26s; animation-delay:-12s;}
+  .mesh span:nth-child(4){width:480px; height:480px; background:radial-gradient(circle, var(--accent-glow), transparent 70%); bottom:-140px; right:10%; opacity:.4; animation-duration:24s; animation-delay:-3s;}
+  @keyframes drift{0%{transform:translate(0,0) scale(1);}100%{transform:translate(-50px,40px) scale(1.12);}}
+
+  .progress-bar{position:fixed; top:0; left:0; height:3px; width:0%; background:linear-gradient(90deg, var(--accent), var(--violet)); z-index:999; box-shadow:0 0 10px var(--accent-glow); transition:width .1s linear;}
+
+  /* ===== Glass base ===== */
+  .glass{
+    background:var(--glass);
+    backdrop-filter:blur(22px) saturate(180%);
+    -webkit-backdrop-filter:blur(22px) saturate(180%);
+    border:1px solid var(--glass-border);
+    box-shadow:var(--glass-shadow);
+    position:relative;
+  }
+  .glass::before{
+    content:"";
+    position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:linear-gradient(135deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 34%);
+  }
+
+  /* ===== Cover ===== */
+  .cover{padding:88px 40px 40px; position:relative;}
+  .cover-inner{max-width:1120px; margin:0 auto; position:relative; z-index:1;}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px; letter-spacing:0.05em;
+    color:var(--accent-deep);
+    background:var(--glass-strong);
+    backdrop-filter:blur(16px);
+    border:1px solid var(--glass-border);
+    padding:7px 15px;
+    border-radius:999px;
+    margin-bottom:26px;
+    box-shadow:var(--glass-shadow);
+    opacity:0; animation:fadeUp .7s var(--ease) .05s forwards;
+  }
+  .eyebrow .dot{width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 0 var(--accent-glow); animation:ringPulse 1.8s ease-out infinite;}
+  h1.title{
+    font-size:54px; font-weight:700; letter-spacing:-.01em; line-height:1.24;
+    max-width:860px; margin-bottom:18px; color:var(--navy);
+    opacity:0; animation:fadeUp .7s var(--ease) .14s forwards;
+  }
+  h1.title .hl{
+    background:linear-gradient(100deg, var(--accent) 10%, var(--violet) 60%, var(--accent) 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .subtitle{
+    font-size:17px; color:var(--text-2); max-width:640px; margin-bottom:36px;
+    opacity:0; animation:fadeUp .7s var(--ease) .22s forwards;
+  }
+  .cover-stats{
+    display:flex; gap:0; flex-wrap:wrap;
+    padding:24px 28px; border-radius:20px;
+    opacity:0; animation:fadeUp .7s var(--ease) .3s forwards;
+  }
+  .cover-stat{padding:0 32px 0 0; margin-left:32px; border-left:1px solid rgba(16,27,45,.1); padding-left:32px;}
+  .cover-stat:last-child{border-left:none;}
+  .cover-stat .num{font-family:'IBM Plex Mono', monospace; font-size:27px; font-weight:600; color:var(--navy);}
+  .cover-stat .lbl{font-size:12.5px; color:var(--text-2); margin-top:4px;}
+
+  .pulse-strip{
+    display:flex; align-items:center; gap:18px; margin-top:20px; padding:18px 28px;
+    border-radius:16px;
+    opacity:0; animation:fadeUp .7s var(--ease) .38s forwards;
+  }
+  .pulse-svg{width:220px; height:32px; flex-shrink:0; overflow:visible;}
+  .pulse-track{fill:none; stroke:rgba(16,27,45,.08); stroke-width:2;}
+  .pulse-line{
+    fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
+    filter:drop-shadow(0 0 6px var(--accent-glow));
+    stroke-dasharray:340 900;
+    animation:travelPulse 3.2s linear infinite;
+  }
+  @keyframes travelPulse{0%{stroke-dashoffset:1240;}100%{stroke-dashoffset:0;}}
+  .pulse-strip-label{font-size:12.5px; color:var(--text-2); font-family:'IBM Plex Mono', monospace;}
+
+  @keyframes fadeUp{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes ringPulse{0%{box-shadow:0 0 0 0 var(--accent-glow);}70%{box-shadow:0 0 0 9px rgba(0,200,150,0);}100%{box-shadow:0 0 0 0 rgba(0,200,150,0);}}
+
+  /* ===== Section shell ===== */
+  section.block{max-width:1120px; margin:0 auto; padding:64px 40px 8px;}
+  .section-head{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:24px;
+    margin-bottom:36px; padding-bottom:20px; border-bottom:1px solid rgba(16,27,45,.1); flex-wrap:wrap;
+  }
+  .section-head h2{font-size:28px; font-weight:700; letter-spacing:-.005em; display:flex; align-items:center; gap:12px; color:var(--navy);}
+  .section-head .idx{font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--text-3);}
+  .section-tag{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent-deep);
+    background:var(--glass-strong); backdrop-filter:blur(14px);
+    border:1px solid var(--glass-border); padding:6px 13px; border-radius:9px; white-space:nowrap;
+    box-shadow:var(--glass-shadow);
+  }
+  .section-desc{color:var(--text-2); font-size:15px; max-width:700px; margin-bottom:8px;}
+
+  /* ===== Kiosk rail ===== */
+  .rail{display:flex; align-items:center; gap:6px; margin:28px 0 40px; overflow-x:auto; padding-bottom:6px;}
+  .rail-step{display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--text-3); white-space:nowrap; flex-shrink:0;}
+  .rail-step .n{
+    width:23px; height:23px; border-radius:50%;
+    background:var(--glass-strong); backdrop-filter:blur(10px);
+    border:1px solid var(--glass-border);
+    display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--text-2);
+  }
+  .rail-step.branch .n{background:var(--red-l); border-color:var(--red-line); color:var(--red-deep); box-shadow:0 0 0 4px var(--red-l);}
+  .rail-line{width:34px; height:1px; background:rgba(16,27,45,.12); flex-shrink:0;}
+
+  /* ===== Kiosk cards (glass phones, no bezel) ===== */
+  .kiosk-row{display:grid; grid-template-columns:repeat(3, 1fr); gap:30px; margin-bottom:16px;}
+  @media (max-width: 900px){ .kiosk-row{grid-template-columns:repeat(2,1fr);} }
+
+  .reveal{opacity:0; transform:translateY(24px); transition:opacity .6s var(--ease), transform .6s var(--ease);}
+  .reveal.in{opacity:1; transform:translateY(0);}
+
+  .kiosk-card{display:flex; flex-direction:column; align-items:center;}
+  .kiosk-label{
+    display:flex; align-items:center; justify-content:space-between; width:100%;
+    max-width:280px; margin-bottom:12px; padding:0 4px;
+  }
+  .kiosk-label .name{font-weight:600; font-size:13px; color:var(--navy);}
+  .kiosk-label .num{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--text-3);}
+
+  .screen-wrap{
+    display:flex; align-items:stretch; gap:9px; width:100%; max-width:280px;
+  }
+  .softkeys{display:flex; flex-direction:column; justify-content:space-evenly; padding:26px 0;}
+  .softkeys span{
+    width:9px; height:9px; border-radius:50%;
+    background:rgba(16,27,45,.14); border:1px solid rgba(16,27,45,.1);
+    box-shadow:0 1px 2px rgba(16,27,45,.06);
+  }
+  .softkeys.left span{margin-right:-4.5px;}
+  .softkeys.right span{margin-left:-4.5px;}
+
+  .screen{
+    flex:1; min-height:400px;
+    background:var(--glass-strong);
+    backdrop-filter:blur(26px) saturate(190%);
+    -webkit-backdrop-filter:blur(26px) saturate(190%);
+    border:1px solid var(--glass-border);
+    border-radius:14px;
+    box-shadow:var(--glass-shadow-lg);
+    overflow:hidden; position:relative;
+    display:flex; flex-direction:column;
+    transition:transform .4s var(--ease), box-shadow .4s var(--ease);
+  }
+  .screen::before{
+    content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:2;
+    background:linear-gradient(140deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 30%);
+  }
+  .kiosk-card:hover .screen{transform:translateY(-6px); box-shadow:0 40px 80px -20px rgba(28,42,80,.35);}
+
+  .screen-topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 14px 8px; position:relative; z-index:1;
+    border-bottom:1px solid rgba(16,27,45,.06);
+  }
+  .screen-topbar .s-dot{width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent-glow);}
+  .screen-topbar .s-brand-mini{font-family:'IBM Plex Mono', monospace; font-size:9px; color:var(--text-2); letter-spacing:.04em; flex:1; margin-right:auto; padding-right:6px;}
+  .screen-topbar .s-time{font-family:'IBM Plex Mono', monospace; font-size:9px; color:var(--text-3);}
+
+  .screen-body{flex:1; padding:12px 14px 14px; display:flex; flex-direction:column; position:relative; z-index:1;}
+
+  .bank-brand{display:none;} /* replaced by screen-topbar */
+
+  .scr-title{font-size:15.5px; font-weight:700; margin-bottom:4px; color:var(--navy);}
+  .scr-sub{font-size:11px; color:var(--text-2); margin-bottom:14px; line-height:1.55;}
+
+  .svc-grid{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+  .svc-btn{
+    border:1px solid var(--glass-border); border-radius:12px; padding:11px 8px; font-size:11px; font-weight:600;
+    background:rgba(255,255,255,.45); backdrop-filter:blur(8px); text-align:center; color:var(--text); transition:all .2s var(--ease);
+  }
+  .svc-btn.active{background:var(--navy); color:#fff; border-color:var(--navy); box-shadow:0 8px 18px -6px rgba(16,27,45,.4);}
+
+  .amount-pad{margin-top:auto; border:1px solid var(--glass-border); border-radius:16px; padding:12px; background:rgba(255,255,255,.4); backdrop-filter:blur(10px);}
+  .amount-pad .lbl{font-size:9.5px; color:var(--text-3); margin-bottom:4px;}
+  .amount-pad .amt{font-family:'IBM Plex Mono', monospace; font-size:19px; font-weight:600; color:var(--navy);}
+
+  .cta{
+    margin-top:10px; background:var(--navy); color:#fff; text-align:center; padding:12px; border-radius:13px;
+    font-size:12px; font-weight:600; transition:all .25s var(--ease); cursor:pointer;
+    box-shadow:0 10px 24px -10px rgba(16,27,45,.5);
+  }
+  .cta:hover{transform:translateY(-2px); box-shadow:0 14px 28px -8px rgba(16,27,45,.5);}
+  .cta:active{transform:translateY(0) scale(.98);}
+  .cta.ghost{background:rgba(255,255,255,.4); backdrop-filter:blur(8px); color:var(--navy); border:1px solid var(--glass-border); box-shadow:none;}
+  .cta.ghost:hover{background:rgba(255,255,255,.6);}
+  .cta.coral{background:var(--red); box-shadow:0 10px 24px -10px var(--red-glow);}
+  .cta.coral:hover{box-shadow:0 14px 28px -8px var(--red-glow);}
+
+  .spinner-wrap{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;}
+  .radar{position:relative; width:50px; height:50px; display:flex; align-items:center; justify-content:center;}
+  .radar span{position:absolute; width:100%; height:100%; border-radius:50%; border:2px solid var(--accent); opacity:0; animation:radarPing 2s var(--ease) infinite;}
+  .radar span:nth-child(2){animation-delay:.5s;}
+  .radar span:nth-child(3){animation-delay:1s;}
+  .radar .core{width:11px; height:11px; border-radius:50%; background:var(--accent); box-shadow:0 0 12px var(--accent-glow);}
+  @keyframes radarPing{0%{transform:scale(.3); opacity:.7;}100%{transform:scale(1.6); opacity:0;}}
+  .spin-txt{font-size:11.5px; color:var(--text-2); text-align:center;}
+  .spin-bar{width:65%; height:4px; background:rgba(16,27,45,.08); border-radius:4px; overflow:hidden;}
+  .spin-bar span{display:block; width:40%; height:100%; background:var(--accent); border-radius:4px; animation:barSlide 1.3s ease-in-out infinite;}
+  @keyframes barSlide{0%{transform:translateX(-100%);}100%{transform:translateX(250%);}}
+
+  /* Status block (unavailable machine) */
+  .status-block{
+    background:rgba(232,69,93,.08); backdrop-filter:blur(10px);
+    border:1px solid var(--red-line); border-radius:16px; padding:14px 13px 13px; margin-bottom:10px;
+  }
+  .status-icon{
+    width:38px; height:38px; border-radius:11px; background:var(--red); color:#fff;
+    display:flex; align-items:center; justify-content:center; margin-bottom:10px;
+    box-shadow:0 0 0 5px var(--red-l); animation:iconPulse 2s ease-in-out infinite;
+  }
+  @keyframes iconPulse{0%,100%{box-shadow:0 0 0 5px var(--red-l);}50%{box-shadow:0 0 0 8px var(--red-l), 0 0 16px var(--red-glow);}}
+  .status-icon svg{width:18px; height:18px;}
+  .reason-chip{
+    display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:9px; font-weight:500;
+    color:var(--red-deep); background:rgba(255,255,255,.55); border:1px solid var(--red-line); padding:3px 8px; border-radius:6px; margin-bottom:7px;
+  }
+  .reason-chip::before{content:""; width:5px; height:5px; border-radius:50%; background:var(--red); animation:dotPulse 1.4s ease-out infinite;}
+  .status-block .scr-title{font-size:14px; margin-bottom:4px; line-height:1.4;}
+  .status-block .scr-sub{margin-bottom:0; font-size:10.5px; line-height:1.5;}
+
+  .next-hint{
+    display:flex; align-items:center; gap:9px; background:rgba(255,255,255,.4); backdrop-filter:blur(10px);
+    border:1px solid var(--glass-border); border-radius:13px; padding:10px 11px; margin-bottom:10px;
+  }
+  .next-hint .radar-mini{position:relative; width:20px; height:20px; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+  .next-hint .radar-mini span{position:absolute; width:100%; height:100%; border-radius:50%; border:1.5px solid var(--accent); opacity:0; animation:radarPing 1.8s var(--ease) infinite;}
+  .next-hint .radar-mini span:nth-child(2){animation-delay:.5s;}
+  .next-hint .radar-mini .core{width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent-glow);}
+  .next-hint .txt{font-size:10px; color:var(--text-2); line-height:1.5;}
+  .next-hint .txt b{color:var(--navy); font-weight:600;}
+
+  .icon-circle{
+    width:36px; height:36px; border-radius:50%; background:var(--red-l); color:var(--red-deep);
+    display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; margin-bottom:10px;
+    box-shadow:0 0 0 5px var(--red-l);
+  }
+  .icon-circle.ok{background:var(--accent-l); color:var(--accent-deep); box-shadow:0 0 0 5px var(--accent-l);}
+
+  .alt-card{
+    border:1px solid var(--glass-border); border-radius:14px; padding:10px 12px; margin-bottom:8px;
+    display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,.4); backdrop-filter:blur(10px);
+    transition:all .2s var(--ease);
+  }
+  .alt-card.picked{border-color:var(--accent-line); background:var(--accent-l); box-shadow:0 0 0 3px var(--accent-line);}
+  .alt-info .b{font-size:11.5px; font-weight:700; color:var(--navy);}
+  .alt-info .m{font-size:10px; color:var(--text-2); margin-top:2px;}
+  .alt-badge{
+    font-family:'IBM Plex Mono', monospace; font-size:9px; font-weight:700; color:var(--accent-deep);
+    background:rgba(255,255,255,.6); border:1px solid var(--accent-line); padding:3px 7px; border-radius:6px; white-space:nowrap;
+  }
+  .alt-meta{display:flex; gap:6px; margin-top:2px;}
+  .alt-meta span{font-family:'IBM Plex Mono', monospace; font-size:9.5px; color:var(--text-3);}
+
+  .phone-input{
+    border:1px solid var(--glass-border); border-radius:12px; padding:11px; background:rgba(255,255,255,.4); backdrop-filter:blur(8px);
+    font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--text-3); margin-bottom:8px;
+  }
+  .skip-link{font-size:10.5px; color:var(--text-3); text-align:center; margin-top:8px; text-decoration:underline;}
+
+  .success-wrap{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;}
+  .success-icon{
+    width:52px; height:52px; border-radius:50%; background:var(--accent-l);
+    display:flex; align-items:center; justify-content:center; margin-bottom:12px;
+    box-shadow:0 0 0 7px var(--accent-l), 0 0 20px var(--accent-glow); animation:popIn .5s var(--ease);
+  }
+  @keyframes popIn{0%{transform:scale(.4); opacity:0;}70%{transform:scale(1.08);}100%{transform:scale(1); opacity:1;}}
+  .success-icon .chk{width:18px; height:11px; border-left:3px solid var(--accent-deep); border-bottom:3px solid var(--accent-deep); transform:rotate(-45deg) translateY(-2px);}
+  .success-t{font-size:13px; font-weight:700; margin-bottom:5px; color:var(--navy);}
+  .success-d{font-size:10.5px; color:var(--text-2); max-width:190px;}
+
+  .kiosk-note{
+    max-width:280px; padding:10px 2px 0; font-size:11px; color:var(--text-2); text-align:center; line-height:1.6;
+  }
+  .kiosk-note b{color:var(--navy);}
+
+  /* ===== Admin browser frames (glass windows) ===== */
+  .admin-stack{display:flex; flex-direction:column; gap:34px; margin-bottom:24px;}
+  .browser{border-radius:22px; overflow:hidden; transition:box-shadow .35s var(--ease), transform .35s var(--ease);}
+  .browser:hover{box-shadow:var(--glass-shadow-lg); transform:translateY(-3px);}
+  .browser-bar{display:flex; align-items:center; gap:8px; padding:12px 16px; background:rgba(255,255,255,.35); border-bottom:1px solid var(--glass-border); position:relative; z-index:1;}
+  .browser-bar .d{width:9px; height:9px; border-radius:50%; background:rgba(16,27,45,.18);}
+  .browser-bar .url{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--text-3);
+    background:rgba(255,255,255,.55); border:1px solid var(--glass-border); border-radius:7px;
+    padding:4px 10px; margin-right:12px; flex:1; max-width:320px;
+  }
+  .browser-label{font-size:12px; font-weight:700; margin-right:auto; padding-left:8px; color:var(--navy);}
+  .admin-body{padding:22px; position:relative; z-index:1;}
+
+  /* Login */
+  .login-shell{display:flex; align-items:center; justify-content:center; padding:44px 0;}
+  .login-card{
+    width:310px; background:var(--glass-strong); backdrop-filter:blur(20px); border:1px solid var(--glass-border);
+    border-radius:20px; padding:30px; text-align:center; box-shadow:var(--glass-shadow);
+  }
+  .login-card .sq{width:36px; height:36px; border-radius:10px; background:var(--accent); margin:0 auto 14px; box-shadow:0 0 18px var(--accent-glow);}
+  .login-card h3{font-size:16px; margin-bottom:4px; color:var(--navy);}
+  .login-card p{font-size:11.5px; color:var(--text-2); margin-bottom:20px;}
+  .field{text-align:right; margin-bottom:10px;}
+  .field label{font-size:10.5px; color:var(--text-3); display:block; margin-bottom:4px;}
+  .field .box{border:1px solid var(--glass-border); border-radius:9px; padding:9px 10px; font-size:12px; color:var(--text-3); font-family:'IBM Plex Mono', monospace; background:rgba(255,255,255,.4);}
+
+  /* Dashboard */
+  .kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px;}
+  .kpi{
+    background:rgba(255,255,255,.45); backdrop-filter:blur(16px); border:1px solid var(--glass-border);
+    border-radius:16px; padding:15px 17px; transition:transform .25s var(--ease), box-shadow .25s var(--ease);
+    box-shadow:var(--glass-shadow);
+  }
+  .kpi:hover{transform:translateY(-4px);}
+  .kpi .n{font-family:'IBM Plex Mono', monospace; font-size:24px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-.01em; color:var(--navy);}
+  .kpi .l{font-size:11px; color:var(--text-2); margin-top:2px;}
+  .kpi.green .n{color:var(--accent-deep);}
+  .kpi.amber .n{color:var(--amber);}
+  .kpi.coral .n{color:var(--red-deep);}
+
+  .dash-grid{display:grid; grid-template-columns:2fr 1fr; gap:16px;}
+  .map-panel{
+    background:rgba(255,255,255,.35); backdrop-filter:blur(16px); border:1px solid var(--glass-border);
+    border-radius:18px; padding:16px; min-height:280px; position:relative;
+    box-shadow:var(--glass-shadow); overflow:hidden;
+  }
+  .map-panel .ttl{font-size:12.5px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:8px; color:var(--navy);}
+  .map-panel .ttl.live::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 0 var(--accent-glow); animation:ringPulse 1.8s ease-out infinite;}
+  .pin{position:absolute; width:12px; height:12px; border-radius:50%; border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+  .pin.g{background:var(--accent); animation:pingGreen 2.4s ease-out infinite;}
+  .pin.a{background:var(--amber); animation:pingAmber 2.4s ease-out infinite;}
+  .pin.r{background:var(--red); animation:pingRed 1.3s ease-out infinite;}
+  @keyframes pingGreen{0%{box-shadow:0 1px 3px rgba(0,0,0,.2), 0 0 0 0 var(--accent-glow);}70%{box-shadow:0 1px 3px rgba(0,0,0,.2), 0 0 0 9px rgba(0,200,150,0);}100%{box-shadow:0 1px 3px rgba(0,0,0,.2), 0 0 0 0 rgba(0,200,150,0);}}
+  @keyframes pingAmber{0%{box-shadow:0 1px 3px rgba(0,0,0,.2), 0 0 0 0 var(--amber-glow);}70%{box-shadow:0 1px 3px rgba(0,0,0,.2), 0 0 0 9px rgba(217,138,21,0);}100%{box-shadow:0 1px 3px rgba(0,0,0,.2), 0 0 0 0 rgba(217,138,21,0);}}
+  @keyframes pingRed{0%{box-shadow:0 1px 3px rgba(0,0,0,.2), 0 0 0 0 var(--red-glow);}70%{box-shadow:0 1px 3px rgba(0,0,0,.2), 0 0 0 11px rgba(232,69,93,0);}100%{box-shadow:0 1px 3px rgba(0,0,0,.2), 0 0 0 0 rgba(232,69,93,0);}}
+  .legend{position:absolute; bottom:14px; left:14px; background:rgba(255,255,255,.7); backdrop-filter:blur(10px); border:1px solid var(--glass-border); border-radius:10px; padding:8px 10px; display:flex; gap:12px;}
+  .legend .item{display:flex; align-items:center; gap:5px; font-size:10px; color:var(--text-2);}
+  .legend .dot{width:8px; height:8px; border-radius:50%;}
+
+  .side-panel{display:flex; flex-direction:column; gap:12px;}
+  .filter-card{background:rgba(255,255,255,.4); backdrop-filter:blur(16px); border:1px solid var(--glass-border); border-radius:16px; padding:15px; box-shadow:var(--glass-shadow);}
+  .filter-card .ttl{font-size:12px; font-weight:700; margin-bottom:10px; color:var(--navy);}
+  .chip-row{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{font-size:10.5px; border:1px solid var(--glass-border); background:rgba(255,255,255,.4); border-radius:999px; padding:5px 10px; color:var(--text-2); cursor:pointer; transition:all .2s var(--ease);}
+  .chip:hover{border-color:var(--accent-line); color:var(--accent-deep);}
+  .chip.on{background:var(--navy); color:#fff; border-color:var(--navy);}
+
+  .alert-list{display:flex; flex-direction:column; gap:8px;}
+  .alert-item{display:flex; gap:8px; align-items:flex-start; font-size:11px;}
+  .alert-item .dt{width:7px; height:7px; border-radius:50%; margin-top:5px; flex-shrink:0; animation:dotPulse 2s ease-out infinite;}
+  @keyframes dotPulse{0%{box-shadow:0 0 0 0 rgba(0,0,0,.12);}70%{box-shadow:0 0 0 5px rgba(0,0,0,0);}100%{box-shadow:0 0 0 0 rgba(0,0,0,0);}}
+  .alert-item .tx b{display:block; font-size:11.5px; color:var(--navy);}
+  .alert-item .tx span{color:var(--text-3); font-family:'IBM Plex Mono', monospace; font-size:9.5px;}
+
+  /* Table */
+  table{width:100%; border-collapse:collapse; background:rgba(255,255,255,.4); backdrop-filter:blur(16px); border-radius:16px; overflow:hidden; border:1px solid var(--glass-border); box-shadow:var(--glass-shadow);}
+  thead tr{background:rgba(255,255,255,.35);}
+  th{font-size:10.5px; color:var(--text-2); text-align:right; padding:11px 14px; font-weight:700;}
+  td{font-size:11.5px; padding:11px 14px; border-top:1px solid rgba(16,27,45,.06); color:var(--text);}
+  tbody tr{transition:background .15s;}
+  tbody tr:hover{background:rgba(255,255,255,.35);}
+  td.mono{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--text-3);}
+  .status-pill{font-size:10px; font-weight:700; padding:3px 9px; border-radius:999px; font-family:'IBM Plex Mono', monospace;}
+  .status-pill.g{background:var(--accent-l); color:var(--accent-deep);}
+  .status-pill.a{background:var(--amber-l); color:#8A5A0C; position:relative;}
+  .status-pill.a::before{content:""; display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--amber); margin-left:5px; animation:dotPulse 1.4s ease-out infinite;}
+  .status-pill.r{background:var(--red-l); color:var(--red-deep);}
+
+  /* ===== Flow map footer ===== */
+  .flowmap{max-width:1120px; margin:0 auto; padding:70px 40px 20px;}
+  .flowmap-card{
+    background:rgba(16,27,45,.86); backdrop-filter:blur(20px); color:#fff; border-radius:26px; padding:42px;
+    border:1px solid rgba(255,255,255,.1); box-shadow:var(--glass-shadow-lg); position:relative; overflow:hidden;
+  }
+  .flowmap-card::after{
+    content:""; position:absolute; width:420px; height:420px; border-radius:50%;
+    background:radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+    bottom:-220px; left:-120px; opacity:.35; filter:blur(6px); pointer-events:none;
+  }
+  .flowmap-card h3{font-size:18px; margin-bottom:22px; position:relative; font-weight:600;}
+  .flow-chain{display:flex; align-items:center; flex-wrap:wrap; gap:0; position:relative;}
+  .flow-node{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.16);
+    padding:8px 14px; border-radius:10px; color:#DDE3EC; transition:all .2s var(--ease);
+  }
+  .flow-node:hover{border-color:var(--accent); box-shadow:0 0 16px var(--accent-glow); color:#fff;}
+  .flow-arrow{color:#5B6E86; font-size:14px; padding:0 10px;}
+
+  footer{text-align:center; padding:50px 20px 60px; color:var(--text-3); font-size:12px;}
+  footer .brand{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-2); margin-bottom:6px;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}
+  }
+  @media print{ .kiosk-row{grid-template-columns:repeat(2,1fr);} }
+</style>
+</head>
+<body>
+<div class="mesh"><span></span><span></span><span></span><span></span></div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- ===================== COVER ===================== -->
+<div class="cover">
+  <div class="cover-inner">
+    <div class="eyebrow"><span class="dot"></span> UI / UX SPECIFICATION</div>
+    <h1 class="title">نظام <span class="hl">التوجيه الذكي</span> لماكينات الصراف الآلي</h1>
+    <p class="subtitle">تصميم كامل لتسع شاشات: ست شاشات على شاشة الصراف الآلي بتخص العميل، وثلاث شاشات للوحة تحكم إدارة البنك — مبنية على الـ Class Diagram والـ ERD والـ API Contract الأصلية للمشروع.</p>
+    <div class="cover-stats glass">
+      <div class="cover-stat"><div class="num" data-count="6">06</div><div class="lbl">شاشات العميل — كشك الصراف</div></div>
+      <div class="cover-stat"><div class="num" data-count="3">03</div><div class="lbl">شاشات لوحة تحكم الأدمن</div></div>
+      <div class="cover-stat"><div class="num">2s / 3s</div><div class="lbl">أقصى زمن استجابة (NFR)</div></div>
+    </div>
+    <div class="pulse-strip glass">
+      <svg viewBox="0 0 900 60" preserveAspectRatio="none" class="pulse-svg">
+        <polyline class="pulse-track" points="0,30 120,30 150,30 168,8 186,52 204,30 222,30 340,30 360,30 378,14 396,46 414,30 432,30 900,30"/>
+        <polyline class="pulse-line" points="0,30 120,30 150,30 168,8 186,52 204,30 222,30 340,30 360,30 378,14 396,46 414,30 432,30 900,30"/>
+      </svg>
+      <span class="pulse-strip-label">مراقبة لحظية لكل ماكينة على الشبكة</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CUSTOMER FLOW ===================== -->
+<section class="block" id="customer">
+  <div class="section-head">
+    <h2><span class="idx">01</span>&nbsp; رحلة العميل على شاشة الصراف</h2>
+    <div class="section-tag">Kiosk · Embedded Web App</div>
+  </div>
+  <p class="section-desc">الفلو بيبدأ لما العميل يطلب خدمة، ولو الماكينة معطلة أو مفيهاش كاش كفاية، النظام بيحوّله تلقائيًا لأقرب 3 ماكينات شغالة من غير ما يعرض رصيد الكاش الفعلي — بس بيأكد إن المبلغ اللي طالبه متاح.</p>
+
+  <div class="rail">
+    <div class="rail-step"><span class="n">1</span> اختيار الخدمة</div><div class="rail-line"></div>
+    <div class="rail-step"><span class="n">2</span> فحص الحالة</div><div class="rail-line"></div>
+    <div class="rail-step branch"><span class="n">3</span> غير متاحة</div><div class="rail-line"></div>
+    <div class="rail-step"><span class="n">4</span> اختيار بديل</div><div class="rail-line"></div>
+    <div class="rail-step"><span class="n">5</span> رقم الموبايل</div><div class="rail-line"></div>
+    <div class="rail-step"><span class="n">6</span> تأكيد</div>
+  </div>
+
+  <div class="kiosk-row">
+
+    <!-- Screen 1 -->
+    <div class="kiosk-card">
+      <div class="kiosk-label"><span class="name">1 · اختيار الخدمة والمبلغ</span><span class="num">SCR-01</span></div>
+      <div class="screen-wrap">
+        <div class="softkeys left"><span></span><span></span><span></span><span></span></div>
+        <div class="screen">
+        <div class="screen-topbar"><span class="s-dot"></span><span class="s-brand-mini">SARS</span><span class="s-time">10:24</span></div>
+        <div class="screen-body">
+          <div class="bank-brand"><span class="sq"></span> SARS · فرع المهندسين</div>
+          <div class="scr-title">اختار الخدمة</div>
+          <div class="scr-sub">من فضلك اختار نوع العملية اللي عايز تعملها</div>
+          <div class="svc-grid">
+            <div class="svc-btn active">سحب نقدي</div>
+            <div class="svc-btn">إيداع نقدي</div>
+            <div class="svc-btn">تحويل عملة</div>
+            <div class="svc-btn">إيداع شيك</div>
+          </div>
+          <div class="amount-pad">
+            <div class="lbl">المبلغ المطلوب</div>
+            <div class="amt">2,500 <span style="font-size:11px;color:var(--text-3)">EGP</span></div>
+            <div class="cta">متابعة</div>
+          </div>
+        </div>
+        </div>
+        <div class="softkeys right"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="kiosk-note"><b>Endpoint:</b> POST /atms/{atmId}/transactions/attempt · requestedService + requestedAmount</div>
+    </div>
+
+    <!-- Screen 2 -->
+    <div class="kiosk-card">
+      <div class="kiosk-label"><span class="name">2 · فحص حالة الماكينة</span><span class="num">SCR-02</span></div>
+      <div class="screen-wrap">
+        <div class="softkeys left"><span></span><span></span><span></span><span></span></div>
+        <div class="screen">
+        <div class="screen-topbar"><span class="s-dot"></span><span class="s-brand-mini">SARS</span><span class="s-time">10:24</span></div>
+        <div class="screen-body">
+          <div class="bank-brand"><span class="sq"></span> SARS · فرع المهندسين</div>
+          <div class="spinner-wrap">
+            <div class="radar"><span></span><span></span><span></span><div class="core"></div></div>
+            <div class="spin-txt">جارِ التحقق من توفر الخدمة<br>على هذه الماكينة...</div>
+            <div class="spin-bar"><span></span></div>
+          </div>
+        </div>
+        </div>
+        <div class="softkeys right"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="kiosk-note"><b>NFR:</b> لازم يتحسم خلال أقل من 3 ثواني عشان العميل ميستعجلش أو يسيب الماكينة.</div>
+    </div>
+
+    <!-- Screen 3 -->
+    <div class="kiosk-card">
+      <div class="kiosk-label"><span class="name">3 · الماكينة غير متاحة</span><span class="num">SCR-03</span></div>
+      <div class="screen-wrap">
+        <div class="softkeys left"><span></span><span></span><span></span><span></span></div>
+        <div class="screen">
+        <div class="screen-topbar"><span class="s-dot"></span><span class="s-brand-mini">SARS</span><span class="s-time">10:24</span></div>
+        <div class="screen-body">
+          <div class="bank-brand"><span class="sq"></span> SARS · فرع المهندسين</div>
+
+          <div class="status-block">
+            <div class="status-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="5" width="18" height="13" rx="3" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M3 10H21" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M7 14.2H10.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M4 21L20 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="reason-chip">reason: INSUFFICIENT_CASH</div>
+            <div class="scr-title">الماكينة دي مش متاحة دلوقتي</div>
+            <div class="scr-sub">رصيد الكاش الحالي مش كافي لمبلغ السحب اللي طلبته. متقلقش، فلوسك في أمان — هنوجهك لأقرب ماكينة تقدر تخدمك حالًا.</div>
+          </div>
+
+          <div class="next-hint">
+            <div class="radar-mini"><span></span><span></span><div class="core"></div></div>
+            <div class="txt"><b>بنجهزلك أقرب 3 بدائل الآن</b><br>حسب موقعك ونوع الخدمة المطلوبة</div>
+          </div>
+
+          <div class="cta" style="margin-top:auto;">عرض الماكينات البديلة</div>
+          <div class="cta ghost">إلغاء العملية</div>
+        </div>
+        </div>
+        <div class="softkeys right"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="kiosk-note"><b>reason:</b> OFFLINE / MAINTENANCE / NO_CASH / INSUFFICIENT_CASH — النص والأيقونة بيتغيروا حسب السبب لكن بشكل مطمّن دايمًا، من غير ما نحمّل العميل تفاصيل تقنية.</div>
+    </div>
+
+    <!-- Screen 4 -->
+    <div class="kiosk-card">
+      <div class="kiosk-label"><span class="name">4 · اختيار ماكينة بديلة</span><span class="num">SCR-04</span></div>
+      <div class="screen-wrap">
+        <div class="softkeys left"><span></span><span></span><span></span><span></span></div>
+        <div class="screen">
+        <div class="screen-topbar"><span class="s-dot"></span><span class="s-brand-mini">SARS</span><span class="s-time">10:24</span></div>
+        <div class="screen-body">
+          <div class="bank-brand"><span class="sq"></span> SARS · أقرب 3 ماكينات</div>
+          <div class="scr-title" style="font-size:14px;">اختار الماكينة الأقرب ليك</div>
+
+          <div class="alt-card picked">
+            <div class="alt-info">
+              <div class="b">فرع مصطفى النحاس</div>
+              <div class="alt-meta"><span>1.2 km</span><span>· 4 دقايق</span></div>
+            </div>
+            <div class="alt-badge">متاح</div>
+          </div>
+          <div class="alt-card">
+            <div class="alt-info">
+              <div class="b">فرع التسعين الشمالي</div>
+              <div class="alt-meta"><span>2.0 km</span><span>· 7 دقايق</span></div>
+            </div>
+            <div class="alt-badge">متاح</div>
+          </div>
+          <div class="alt-card">
+            <div class="alt-info">
+              <div class="b">فرع الحي الأول</div>
+              <div class="alt-meta"><span>2.6 km</span><span>· 9 دقايق</span></div>
+            </div>
+            <div class="alt-badge">متاح</div>
+          </div>
+          <div class="cta" style="margin-top:auto;">إرسال التفاصيل على الموبايل</div>
+        </div>
+        </div>
+        <div class="softkeys right"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="kiosk-note"><b>مهم:</b> مفيش أي رقم لرصيد الكاش الفعلي — بس badge "متاح/منخفض" يأكد إن مبلغك موجود.</div>
+    </div>
+
+    <!-- Screen 5 -->
+    <div class="kiosk-card">
+      <div class="kiosk-label"><span class="name">5 · إدخال رقم الموبايل</span><span class="num">SCR-05</span></div>
+      <div class="screen-wrap">
+        <div class="softkeys left"><span></span><span></span><span></span><span></span></div>
+        <div class="screen">
+        <div class="screen-topbar"><span class="s-dot"></span><span class="s-brand-mini">SARS</span><span class="s-time">10:24</span></div>
+        <div class="screen-body">
+          <div class="bank-brand"><span class="sq"></span> SARS · فرع مصطفى النحاس</div>
+          <div class="scr-title">عايزين نبعتلك التفاصيل</div>
+          <div class="scr-sub">ادخل رقم موبايلك وهنبعتلك رابط التوجيه على الماكينة اللي اخترتها</div>
+          <div class="phone-input">01xx xxx xxxx</div>
+          <div class="cta">إرسال</div>
+          <div class="skip-link">تخطي وطباعة الاتجاهات فقط</div>
+        </div>
+        </div>
+        <div class="softkeys right"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="kiosk-note"><b>NFR:</b> الرقم بيتشفّر أثناء النقل ومش بيتخزن في قاعدة البيانات بعد إرسال الرسالة.</div>
+    </div>
+
+    <!-- Screen 6 -->
+    <div class="kiosk-card">
+      <div class="kiosk-label"><span class="name">6 · تأكيد الإرسال</span><span class="num">SCR-06</span></div>
+      <div class="screen-wrap">
+        <div class="softkeys left"><span></span><span></span><span></span><span></span></div>
+        <div class="screen">
+        <div class="screen-topbar"><span class="s-dot"></span><span class="s-brand-mini">SARS</span><span class="s-time">10:24</span></div>
+        <div class="screen-body">
+          <div class="bank-brand"><span class="sq"></span> SARS · فرع مصطفى النحاس</div>
+          <div class="success-wrap">
+            <div class="success-icon"><div class="chk"></div></div>
+            <div class="success-t">تم إرسال التفاصيل بنجاح</div>
+            <div class="success-d">هتلاقي رابط الاتجاهات ومعاه اسم الفرع والخدمة المؤكدة في رسالة SMS خلال لحظات</div>
+          </div>
+          <div class="cta ghost">إنهاء</div>
+        </div>
+        </div>
+        <div class="softkeys right"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="kiosk-note"><b>Async:</b> إرسال الـ SMS بيتم في الخلفية (Task Queue) عشان مايأخرش شاشة الماكينة.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================== ADMIN FLOW ===================== -->
+<section class="block" id="admin">
+  <div class="section-head">
+    <h2><span class="idx">02</span>&nbsp; لوحة تحكم الأدمن</h2>
+    <div class="section-tag">Internal Web Dashboard</div>
+  </div>
+  <p class="section-desc">استخدام داخلي بحت لفريق العمليات في البنك — مراقبة حالة كل الماكينات لحظيًا، ومتابعة سجل التنبيهات، وإدارة بيانات الماكينات لأصحاب صلاحية SUPER_ADMIN.</p>
+
+  <div class="admin-stack">
+
+    <!-- Admin Screen 1: Login -->
+    <div class="browser glass">
+      <div class="browser-bar">
+        <span class="d"></span><span class="d"></span><span class="d"></span>
+        <span class="url">dashboard.sars.bank.com/login</span>
+        <span class="browser-label">1 · تسجيل الدخول <span class="num mono" style="color:var(--text-3)">SCR-A1</span></span>
+      </div>
+      <div class="admin-body">
+        <div class="login-shell">
+          <div class="login-card">
+            <div class="sq"></div>
+            <h3>الدخول للوحة التحكم</h3>
+            <p>لموظفي العمليات ومراقبة الشبكة فقط</p>
+            <div class="field"><label>اسم المستخدم</label><div class="box">admin.ops@sars.bank</div></div>
+            <div class="field"><label>كلمة المرور</label><div class="box">••••••••••</div></div>
+            <div class="cta">دخول</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Screen 2: Live Dashboard -->
+    <div class="browser glass">
+      <div class="browser-bar">
+        <span class="d"></span><span class="d"></span><span class="d"></span>
+        <span class="url">dashboard.sars.bank.com/live</span>
+        <span class="browser-label">2 · الخريطة الحية <span class="num mono" style="color:var(--text-3)">SCR-A2</span></span>
+      </div>
+      <div class="admin-body">
+        <div class="kpi-row">
+          <div class="kpi green"><div class="n">142</div><div class="l">ماكينة شغالة</div></div>
+          <div class="kpi amber"><div class="n">9</div><div class="l">كاش منخفض</div></div>
+          <div class="kpi coral"><div class="n">3</div><div class="l">خارج الخدمة</div></div>
+          <div class="kpi"><div class="n">99.98%</div><div class="l">Uptime هذا الشهر</div></div>
+        </div>
+        <div class="dash-grid">
+          <div class="map-panel">
+            <div class="ttl live">خريطة الشبكة — تحديث لحظي (WebSocket)</div>
+            <div class="pin g" style="top:60px; left:120px;"></div>
+            <div class="pin g" style="top:110px; left:220px;"></div>
+            <div class="pin a" style="top:150px; left:170px;"></div>
+            <div class="pin r" style="top:90px; left:300px;"></div>
+            <div class="pin g" style="top:190px; left:260px;"></div>
+            <div class="pin g" style="top:140px; left:340px;"></div>
+            <div class="legend">
+              <div class="item"><span class="dot" style="background:var(--accent)"></span> شغالة</div>
+              <div class="item"><span class="dot" style="background:var(--amber)"></span> كاش منخفض</div>
+              <div class="item"><span class="dot" style="background:var(--red)"></span> خارج الخدمة</div>
+            </div>
+          </div>
+          <div class="side-panel">
+            <div class="filter-card">
+              <div class="ttl">فلترة</div>
+              <div class="chip-row">
+                <span class="chip on">الكل</span>
+                <span class="chip">شغالة</span>
+                <span class="chip">كاش منخفض</span>
+                <span class="chip">خارج الخدمة</span>
+              </div>
+            </div>
+            <div class="filter-card">
+              <div class="ttl">أحدث التنبيهات</div>
+              <div class="alert-list">
+                <div class="alert-item"><span class="dt" style="background:var(--red)"></span><div class="tx"><b>فرع الدقي — خارج الخدمة</b><span>منذ دقيقتين</span></div></div>
+                <div class="alert-item"><span class="dt" style="background:var(--amber)"></span><div class="tx"><b>فرع التسعين — كاش منخفض</b><span>منذ 14 دقيقة</span></div></div>
+                <div class="alert-item"><span class="dt" style="background:var(--accent)"></span><div class="tx"><b>فرع الحي الأول — رجعت تعمل</b><span>منذ 32 دقيقة</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Screen 3: ATM detail / notifications log -->
+    <div class="browser glass">
+      <div class="browser-bar">
+        <span class="d"></span><span class="d"></span><span class="d"></span>
+        <span class="url">dashboard.sars.bank.com/notifications</span>
+        <span class="browser-label">3 · سجل الإشعارات وتفاصيل الماكينة <span class="num mono" style="color:var(--text-3)">SCR-A3</span></span>
+      </div>
+      <div class="admin-body">
+        <table>
+          <thead>
+            <tr>
+              <th>الماكينة</th><th>الخدمة المؤكدة</th><th>حالة الإرسال</th><th>التوقيت</th><th>معرّف العملية</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>فرع مصطفى النحاس</td><td>سحب نقدي</td><td><span class="status-pill g">تم التسليم</span></td><td class="mono">14:22</td><td class="mono">ntf_8f21…</td></tr>
+            <tr><td>فرع التسعين الشمالي</td><td>إيداع نقدي</td><td><span class="status-pill a">قيد الإرسال</span></td><td class="mono">14:18</td><td class="mono">ntf_7ac3…</td></tr>
+            <tr><td>فرع الحي الأول</td><td>تحويل عملة</td><td><span class="status-pill r">فشل</span></td><td class="mono">13:55</td><td class="mono">ntf_51de…</td></tr>
+            <tr><td>فرع الدقي</td><td>سحب نقدي</td><td><span class="status-pill g">تم التسليم</span></td><td class="mono">13:40</td><td class="mono">ntf_2b90…</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:11px; color:var(--text-3); margin-top:12px;">* رقم موبايل العميل غير موجود في هذا السجل بشكل متعمد التزامًا بمبدأ Data Minimization.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================== FLOW SUMMARY ===================== -->
+<div class="flowmap">
+  <div class="flowmap-card">
+    <h3>خريطة الفلو الكاملة من طرف لطرف</h3>
+    <div class="flow-chain">
+      <span class="flow-node">العميل يطلب خدمة</span><span class="flow-arrow">←</span>
+      <span class="flow-node">الماكينة Offline</span><span class="flow-arrow">←</span>
+      <span class="flow-node">Routing Engine يحسب البدائل</span><span class="flow-arrow">←</span>
+      <span class="flow-node">عرض 3 بدائل على الشاشة</span><span class="flow-arrow">←</span>
+      <span class="flow-node">SMS بروابط التوجيه</span><span class="flow-arrow">←</span>
+      <span class="flow-node">تحديث فوري للوحة الأدمن</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="brand">SMART ATM ROUTING SYSTEM</div>
+  UI/UX Screens Specification · v1.0 · Aug 2026
+</footer>
+
+<script>
+(function(){
+  var bar = document.getElementById('progressBar');
+  function updateProgress(){
+    var h = document.documentElement;
+    var scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+    if(bar) bar.style.width = scrolled + '%';
+  }
+  window.addEventListener('scroll', updateProgress, {passive:true});
+  updateProgress();
+
+  function animateCount(el, target, decimals, suffix){
+    var start = 0;
+    var dur = 1100;
+    var t0 = null;
+    function step(ts){
+      if(!t0) t0 = ts;
+      var p = Math.min((ts - t0) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      var val = start + (target - start) * eased;
+      el.textContent = (decimals ? val.toFixed(decimals) : Math.round(val).toString().padStart(String(target).length,'0')) + suffix;
+      if(p < 1) requestAnimationFrame(step);
+      else el.textContent = (decimals ? target.toFixed(decimals) : target) + suffix;
+    }
+    requestAnimationFrame(step);
+  }
+
+  function parseAndAnimate(el){
+    var raw = el.textContent.trim();
+    var m = raw.match(/^([\d.]+)(.*)$/);
+    if(!m) return;
+    var num = parseFloat(m[1]);
+    var suffix = m[2] || '';
+    var decimals = m[1].includes('.') ? m[1].split('.')[1].length : 0;
+    animateCount(el, num, decimals, suffix);
+  }
+
+  var countTargets = document.querySelectorAll('.kpi .n, .cover-stat .num[data-count]');
+  var counted = new WeakSet();
+
+  var revealEls = document.querySelectorAll('.kiosk-card, .browser, .flowmap-card, .kpi');
+  revealEls.forEach(function(el){ el.classList.add('reveal'); });
+
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('in');
+        if(entry.target.classList.contains('kpi') && !counted.has(entry.target)){
+          var n = entry.target.querySelector('.n');
+          if(n){ counted.add(entry.target); parseAndAnimate(n); }
+        }
+        io.unobserve(entry.target);
+      }
+    });
+  }, {threshold:0.15, rootMargin:'0px 0px -40px 0px'});
+
+  revealEls.forEach(function(el, i){
+    el.style.transitionDelay = (i % 3) * 70 + 'ms';
+    io.observe(el);
+  });
+
+  var statNums = document.querySelectorAll('.cover-stat .num[data-count]');
+  statNums.forEach(function(el){
+    var target = parseInt(el.getAttribute('data-count'), 10);
+    setTimeout(function(){ animateCount(el, target, 0, ''); }, 500);
+  });
+})();
+</script>
+</body>
+</html>
