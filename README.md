@@ -165,24 +165,143 @@ erDiagram
 
 ```
 sars-project/
-├── docs/
-│   ├── diagrams/           # class, ERD, C4, sequence — mermaid sources
-│   └── api-contract.md     # full endpoint reference (table format)
-├── .github/workflows/      # CI: lint + test on push/PR
+├── .git/
+├── .gitignore                    # venv, node_modules, .env, __pycache__, media/
+├── .env.example                  # 🆕 template for root-level shared vars (if any)
+├── README.md                     # project overview + setup steps for the team
+├── docker-compose.yml            # runs backend + frontend + db + redis together
 │
-├── backend/                # Django
-│   ├── sars_core/          # settings, celery.py, asgi.py
-│   ├── accounts/           # Auth & RBAC
-│   ├── atms/                # ATM model, heartbeat, transaction attempt, WebSocket
-│   ├── routing/             # Routing Engine, MappingGateway
-│   ├── notifications/       # SMS dispatch, notification log
-│   └── common/               # shared error format, pagination, API key auth
+├── docs/                         # 🆕 keeps diagrams & contract versioned with the code
+│   ├── diagrams/
+│   │   ├── class-diagram.md
+│   │   ├── erd.md
+│   │   ├── c4-container-diagram.md
+│   │   └── sequence-diagram.md
+│   └── api-contract.md
 │
-├── frontend/                # React — Admin Dashboard (internal, bank staff)
-│   └── src/{pages,components,services,store,utils,__tests__}/
+├── .github/                      # 🆕 CI/CD (NFR 5)
+│   └── workflows/
+│       ├── backend-ci.yml        # lint + pytest on push/PR
+│       └── frontend-ci.yml       # lint + jest/vitest on push/PR
 │
-└── kiosk/                   # React — ATM Interface (customer-facing, embedded)
-    └── src/{pages,components,services,store,__tests__}/
+├── backend/                      # Django
+│   ├── manage.py
+│   ├── requirements.txt
+│   ├── requirements-dev.txt      # 🆕 pytest, flake8/ruff, coverage
+│   ├── Dockerfile
+│   ├── .env.example              # 🆕 DB_URL, REDIS_URL, GOOGLE_MAPS_API_KEY,
+│   │                              #     TWILIO_SID/TOKEN, JWT_SECRET, ATM_API_KEY_SALT
+│   ├── pytest.ini                # 🆕
+│   │
+│   ├── sars_core/                # project settings (settings, urls, asgi/wsgi)
+│   │   ├── settings/
+│   │   │   ├── base.py
+│   │   │   ├── dev.py
+│   │   │   └── prod.py
+│   │   ├── celery.py             # Celery config (Task Queue container)
+│   │   └── asgi.py               # WebSocket entrypoint (Django Channels)
+│   │
+│   ├── accounts/                 # 🆕 Admin auth & RBAC (NFR 4)
+│   │   ├── models.py             # Admin model (username, role: ADMIN/SUPER_ADMIN)
+│   │   ├── serializers.py
+│   │   ├── views.py              # /auth/login, /auth/refresh
+│   │   ├── permissions.py        # IsAdmin, IsSuperAdmin (RBAC)
+│   │   ├── urls.py
+│   │   └── tests/                # 🆕
+│   │       ├── test_login.py
+│   │       └── test_permissions.py
+│   │
+│   ├── atms/                     # ATM management (Class: ATM, ServiceType)
+│   │   ├── models.py             # ATM (incl. current_cash_balance), Service, ATM_Service
+│   │   ├── serializers.py
+│   │   ├── views.py              # /atms, /atms/{id}, /atms/{id}/heartbeat,
+│   │   │                          #   /atms/{id}/transactions/attempt,
+│   │   │                          #   🆕 /atms/network-stats (online/low-cash/offline
+│   │   │                          #   counts + uptime %, backs the admin KPI row)
+│   │   ├── consumers.py          # WebSocket consumer -> /ws/dashboard
+│   │   ├── urls.py
+│   │   └── tests/                # 🆕
+│   │       ├── test_heartbeat.py
+│   │       ├── test_transaction_attempt.py
+│   │       └── test_websocket.py
+│   │
+│   ├── routing/                  # Routing Engine
+│   │   ├── services.py           # 🆕 RoutingEngine class: findAlternatives(),
+│   │   │                          #   filterByRadius(), cash-sufficiency filter,
+│   │   │                          #   fallbackHaversine()
+│   │   ├── gateways.py           # 🆕 MappingGateway wrapper (Google Maps client)
+│   │   ├── views.py              # /routing/alternatives
+│   │   ├── urls.py
+│   │   └── tests/                # 🆕
+│   │       ├── test_routing_engine.py     # incl. cash-sufficiency + buffer logic
+│   │       └── test_haversine_fallback.py # mapping API failure path
+│   │
+│   ├── notifications/             # SMS notifications
+│   │   ├── models.py             # Notification (no phone number persisted)
+│   │   │                          # 🆕 requestedService field added — so the admin
+│   │   │                          #   "Notifications" table can show a real confirmed-
+│   │   │                          #   service column instead of parsing free text
+│   │   ├── tasks.py              # Celery task: SMSService.sendSMS / dispatchAsync
+│   │   ├── views.py              # /notifications/sms, /notifications/sms/{id}/status,
+│   │   │                          #   /notifications (admin list)
+│   │   ├── urls.py
+│   │   └── tests/                # 🆕
+│   │       ├── test_sms_dispatch.py
+│   │       └── test_no_phone_persistence.py  # explicit NFR 4 regression test
+│   │
+│   └── common/                   # 🆕 shared utilities across apps
+│       ├── exceptions.py         # standard error object format
+│       ├── pagination.py
+│       └── api_key_auth.py       # X-API-Key auth class for ATM endpoints
+│
+├── frontend/                     # React (Admin Dashboard — internal, bank staff only)
+│   ├── package.json
+│   ├── Dockerfile
+│   ├── .env.example               # 🆕 VITE_API_BASE_URL, VITE_WS_URL
+│   ├── public/
+│   └── src/
+│       ├── assets/                # images, icons, marker colors
+│       ├── components/            # buttons, inputs, ATM marker, status badge
+│       ├── pages/                 # Login (SCR-A1), LiveMap (SCR-A2),
+│       │                          #   Notifications (SCR-A3, incl. ATM detail slide-over)
+│       ├── services/              # api.js (REST calls), socket.js (WebSocket client)
+│       ├── store/                 # 🆕 real-time ATM state (Redux/Zustand/Context)
+│       │   ├── atmsSlice.js       # holds live status pushed via WebSocket
+│       │   └── authSlice.js       # JWT/session state
+│       ├── utils/                 # date/distance formatting
+│       └── __tests__/             # 🆕
+│           ├── components/
+│           └── services/
+│
+└── kiosk/                        # 🆕 React (ATM Interface — embedded kiosk app, customer-facing)
+    │                              #   Matches the "ATM Interface" container in the C4 diagram —
+    │                              #   was already planned there but had no home until now.
+    ├── package.json
+    ├── Dockerfile
+    ├── .env.example               # 🆕 VITE_API_BASE_URL, VITE_ATM_API_KEY, VITE_ATM_ID
+    ├── public/
+    └── src/
+        ├── assets/                # SARS branding, service icons
+        ├── components/            # ServiceGrid, AmountPad, StatusRadar, AlternativeCard,
+        │                          #   PhoneInput, SuccessCheck
+        ├── pages/                 # 🆕 one file per kiosk screen:
+        │   ├── SelectService.jsx        # SCR-01 — service + requestedAmount
+        │   ├── CheckingStatus.jsx       # SCR-02 — loading/spinner, <3s budget
+        │   ├── Unavailable.jsx          # SCR-03 — reason: OFFLINE/MAINTENANCE/
+        │   │                            #   NO_CASH/INSUFFICIENT_CASH
+        │   ├── AlternativesList.jsx     # SCR-04 — top 3, no real balance shown
+        │   ├── PhoneNumberEntry.jsx     # SCR-05 — phone input, "skip" option
+        │   └── Confirmation.jsx         # SCR-06 — success state
+        ├── services/
+        │   └── api.js             # attemptTransaction(), getAlternatives(),
+        │                          #   requestSms() — all via X-API-Key, no JWT
+        ├── store/                 # 🆕 local session state only (no persistence —
+        │                          #   resets every transaction; phone number never
+        │                          #   written to any store/localStorage)
+        │   └── sessionSlice.js
+        ├── utils/
+        └── __tests__/             # 🆕
+            └── pages/
 ```
 
 Full annotated tree with per-file responsibilities: [`SARS-Final-Folder-Structure.md`](./SARS-Final-Folder-Structure.md).
