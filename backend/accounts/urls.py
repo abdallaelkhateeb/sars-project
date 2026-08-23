@@ -1,7 +1,9 @@
 from django.urls import path
-from .views import LoginView, RefreshTokenView
+
+app_name = "accounts"
 
 urlpatterns = [
-    path('login/', LoginView.as_view(), name='login'),
-    path('refresh/', RefreshTokenView.as_view(), name='refresh'),
+    # PLACEHOLDER - accounts app owner adds these (matches API contract #7, #8):
+    # path("login", views.LoginView.as_view()),
+    # path("refresh", views.RefreshView.as_view()),
 ]
