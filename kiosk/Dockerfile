@@ -1,2 +1,12 @@
-# TODO: multi-stage: node build -> nginx serve
-# See SARS-Task-Breakdown.md for the full checklist for this file.
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json* /app/
+RUN npm install
+
+COPY . /app/
+
+EXPOSE 5174
+
+CMD ["npm", "run", "dev"]
