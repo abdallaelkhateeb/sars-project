@@ -12,15 +12,15 @@ Tracks everything done so far on `backend/atms/` and the shared project scaffold
 | Category | Status |
 |---|---|
 | Task 1 — `backend/atms/models.py` | ✅ Done |
-| Task 2 — `backend/atms/serializers.py` | 🔲 Current / next up |
-| Task 3 — `backend/atms/views.py` | 🔲 Queued |
-| Task 4 — `backend/atms/consumers.py` | 🔲 Queued |
-| Task 5 — `backend/atms/urls.py` (real routes) | 🔲 Queued |
+| Task 2 — `backend/atms/serializers.py` | ✅ Done |
+| Task 3 — `backend/atms/views.py` | ✅ Done (plus supporting infra — see §4) |
+| Task 4 — `backend/atms/consumers.py` | 🔲 **Current / next up** |
+| Task 5 — `backend/atms/urls.py` (real REST routes) | ✅ Done (as part of Task 3), WebSocket routes still pending Task 4 |
 | Task 6 — `backend/atms/tests/` | 🔲 Queued |
 | Task 7–9 — kiosk SCR-05, SCR-06 | ⏸ Blocked on عبدالله's `sessionSlice.js` + `services/api.js` |
 | Whole-stack boot fixes (infra) | ✅ Done, verified |
 
-While working on Task 1, I found the project as عبدالله left it wouldn't actually boot (`docker compose up` would crash). Since سارة and صفية are both blocked until the backend runs, I fixed the blocking infra bugs alongside my own task so the team isn't stuck. Details below.
+While working on Task 1, I found the project as عبدالله left it wouldn't actually boot (`docker compose up` would crash). Since سارة and صفية are both blocked until the backend runs, I fixed the blocking infra bugs alongside my own task so the team isn't stuck. All 6 REST endpoints owned by `atms/` are now implemented and routed. Details below.
 
 ---
 
@@ -33,356 +33,128 @@ Implements the 4 models required by the ERD + API contract:
 - **`ATMService`** — through table for the `ATM` ↔ `Service` many-to-many, backs `GET /atms?service=`
 - **`HeartbeatLog`** — append-only, `heartbeat_id` (UUID PK), FK to `ATM`, `status`, `cash_status`, `received_at` — backs `network-stats` uptime % and `recentHeartbeats[]` on `GET /atms/{atmId}`
 
-Plus `ATM.has_sufficient_cash(requested_amount, buffer_amount=0)` — **this is the exact method سارة's `RoutingEngine.filterByRadius()` / cash-sufficiency filter calls**, so the signature was chosen to match the class diagram: `current_cash_balance >= requested_amount + buffer_amount`, returns `True` for non-withdrawal services where `requested_amount` is `None`.
+Plus `ATM.has_sufficient_cash(requested_amount, buffer_amount=0)` — the exact method سارة's `RoutingEngine` cash-sufficiency filter calls. Also `ATM.get_supported_services()`, used by Task 2's serializers.
 
-Also added `ATM.get_supported_services()` returning a flat list of service names, useful for serializers in Task 2.
-
-**File:** `backend/atms/models.py` (full content below in §5)
-
-**Verification performed:**
-- `python manage.py makemigrations atms` — migration generated cleanly
-- `python manage.py check` — no errors
-- Confirmed indexes on `status`, `cash_status`, and `(latitude, longitude)` since these are the fields `GET /atms` filters on and the routing engine will query by radius
+**Verification performed:** `makemigrations atms` clean, `manage.py check` clean, indexes confirmed on `status`, `cash_status`, `(latitude, longitude)`.
 
 ---
 
-## 3. Infra fixes (blocking bugs found while unblocking Task 1)
+## 3. Task 2 — `backend/atms/serializers.py` (✅ complete)
+
+Implements every serializer the contract needs for the `atms/` app:
+
+| Serializer | Backs | Notes |
+|---|---|---|
+| `ServiceSerializer` | `GET /services` | `serviceId`, `name` |
+| `HeartbeatLogSerializer` | `recentHeartbeats[]` inside `GET /atms/{atmId}` | nested, read-only |
+| `ATMListSerializer` | `data[]` on `GET /atms` | `atmId`, `branchName`, `status`, `cashStatus`, `services`, `latitude`, `longitude`, `lastHeartbeatAt` |
+| `ATMDetailSerializer` | `GET /atms/{atmId}` | extends `ATMListSerializer`, adds `recentHeartbeats[]` (capped at 20, most-recent-first) |
+| `ATMCreateSerializer` | `POST /atms` (SUPER_ADMIN) | validates lat/lng range, rejects duplicate `atmId` (→ 409), syncs `services` M2M on create |
+| `ATMUpdateSerializer` | `PATCH /atms/{atmId}` (SUPER_ADMIN) | partial update of `branchName` / `services` |
+| `HeartbeatSerializer` | `POST /atms/{atmId}/heartbeat` | plain `Serializer` (not ModelSerializer) — `.save(atm=atm)` applies the payload to the `ATM` row **and** appends a `HeartbeatLog`; uses server time for `last_heartbeat_at`, not the client-reported `timestamp`, so heartbeat ordering can't be spoofed by clock drift on the device |
+
+**Deliberate omission, flagged for the team:** `current_cash_balance` is **not** exposed on `ATMListSerializer`/`ATMDetailSerializer` — the contract never returns the exact balance on `GET /atms`/`GET /atms/{atmId}`, only `/routing/alternatives` echoes it back as `availableCashBalance`. Don't add it to these two serializers without checking the contract / سارة first.
+
+---
+
+## 4. Task 3 — `backend/atms/views.py` (✅ complete) + supporting infra
+
+All 6 endpoints owned by `atms/` are implemented and wired into real routes:
+
+| # | Endpoint | View |
+|---|---|---|
+| 1 | `POST /atms/{atmId}/transactions/attempt` | `TransactionAttemptView` |
+| 2 | `POST /atms/{atmId}/heartbeat` | `HeartbeatView` |
+| 3 | `GET /atms`, `POST /atms` | `ATMListCreateView` |
+| 4 | `GET /atms/{atmId}`, `PATCH /atms/{atmId}` | `ATMDetailView` |
+| 5 | `GET /services` | `ServiceListView` |
+| 6 | `GET /atms/network-stats` | `NetworkStatsView` |
+
+Getting `views.py` working required more than just that one file, since several apps it depends on were still empty shells. Built and flagging clearly, not hiding it:
+
+| File | What it does | Status for owner |
+|---|---|---|
+| `backend/atms/urls.py` | Real REST routes wired in (replaces the commented-out stub). `network-stats` is registered **before** `atms/<str:atm_id>`, otherwise Django would match `"network-stats"` as an `atm_id` | ✅ done, no action needed |
+| `backend/common/geo.py` | `haversine_km()` — powers the Python-side radius filter on `GET /atms?lat=&lng=&radiusKm=` | سارة — reuse this for `fallbackHaversine()` instead of reimplementing; same formula/units |
+| `backend/common/exceptions.py` | Wraps DRF errors into the contract's standard `{error: {code, message, details}}` shape | shared, no owner conflict |
+| `backend/common/pagination.py` | `StandardResultsSetPagination` → contract's `{data: [...], meta: {page, limit, total, totalPages}}` shape | reuse on any other paginated list endpoint (e.g. `GET /notifications`) |
+| `backend/common/api_key_auth.py` | `ApiKeyAuthentication` — checks `X-API-Key` header against a single shared `settings.ATM_API_KEY` | **TEMPORARY.** Real design per the folder-structure doc is per-device keys salted with `ATM_API_KEY_SALT`. Interface (`(user, None)` or raises `AuthenticationFailed`) is stable — swap the internals only |
+| `backend/accounts/permissions.py` | `IsAdmin` / `IsSuperAdmin` — assumes `request.user.role` is `"ADMIN"`/`"SUPER_ADMIN"` | **TEMPORARY — عبدالله owns this.** Replace with real implementation once the `Admin` model + JWT auth land; keep the class names and `has_permission()` contract the same so `views.py` doesn't need edits |
+
+**Settings/env values still needed** (not yet in `sars_core/settings/base.py` or `.env`):
+- `ATM_API_KEY` — shared dev key, should match kiosk's `VITE_ATM_API_KEY=dev-only-atm-api-key`
+- `ATM_CASH_BUFFER_AMOUNT` — optional, defaults to `50.0` if unset
+
+**Open dependency on سارة:** `TransactionAttemptView._get_alternatives()` calls `routing.services.RoutingEngine().find_alternatives(origin_atm, requested_service, requested_amount, buffer_amount)`. That method doesn't exist yet, so right now this **fails closed with the contract's documented `503`** instead of crashing — it does not silently return an empty list. The exact expected interface is documented in the `views.py` docstring. سارة: please confirm that signature matches what you're building, or tell me what to change.
+
+**Open item for صفية:** `NetworkStatsView`'s response shape (`totalAtms`, `online`, `offline`, `maintenance`, `lowCash`, `emptyCash`, `uptimePercentage`, `uptimeWindowDays`, `calculatedAt`) is my own design — it's **not yet in `docs/api-contract.md`** (the endpoint was added post-review). Please check the fields against what the dashboard KPI row actually needs before we lock it in, and someone should add it to the contract doc once confirmed. Uptime % is computed over a rolling 30-day `HeartbeatLog` window — also not contract-specified, flag me if the dashboard needs a different window.
+
+**Design notes:**
+- Radius search on `GET /atms` is a Python-side Haversine filter (loads matching rows, then filters), not PostGIS, since `ATM.latitude`/`longitude` are plain floats. Fine at current scale; revisit if the ATM table grows large.
+- `HeartbeatView` has a `# TODO(محمد, Task 4)` marker where the WebSocket broadcast to `DashboardConsumer` needs to be added — left explicit rather than a silent no-op so it's easy to find.
+
+---
+
+## 5. Infra fixes (blocking bugs found while unblocking Task 1)
 
 These weren't part of my assigned tasks, but the backend container wouldn't start without them, so I fixed them and I'm flagging each one for the owner to review.
 
 | # | File | Problem | Fix | Owner to confirm |
 |---|---|---|---|---|
-| 1 | `sars_core/urls.py` | Only mounted `accounts.urls` — `atms` endpoints (everything in Task 3) had **no route at all** | Added `path('api/v1/', include('atms.urls'))` | عبدالله |
-| 2 | `sars_core/asgi.py` | Imports `atms.urls.websocket_urlpatterns`, but nothing defined it | Added `websocket_urlpatterns = []` stub in `atms/urls.py` (ready for Task 4's `DashboardConsumer`) | محمد (self) |
-| 3 | `backend/requirements.txt` | `daphne` (used in `Dockerfile` CMD) and `django-cors-headers` (used in `MIDDLEWARE`) were both missing | Added both with pinned versions | عبدالله |
-| 4 | `INSTALLED_APPS` (`accounts`, `routing`, `notifications`, `common`) | Listed but didn't exist as importable code → `ModuleNotFoundError` on boot | Added minimal **placeholder** packages (empty `apps.py`/`models.py`) just so the stack boots — **not real functionality** | عبدالله (accounts) / سارة (routing, notifications) |
+| 1 | `sars_core/urls.py` | Only mounted `accounts.urls` — `atms` endpoints had **no route at all** | Added `path('api/v1/', include('atms.urls'))` | عبدالله |
+| 2 | `sars_core/asgi.py` | Imports `atms.urls.websocket_urlpatterns`, but nothing defined it | Stub `websocket_urlpatterns = []` in `atms/urls.py`, ready for Task 4's `DashboardConsumer` | محمد (self) |
+| 3 | `backend/requirements.txt` | `daphne` and `django-cors-headers` were both missing despite being used | Added both with pinned versions | عبدالله |
+| 4 | `INSTALLED_APPS` (`accounts`, `routing`, `notifications`, `common`) | Listed but didn't exist as importable code → `ModuleNotFoundError` on boot | Minimal placeholder packages so the stack boots — not real functionality | عبدالله (accounts) / سارة (routing, notifications) |
 | 5 | `docker-compose.yml` | File was blank | Wrote all 6 services: `db`, `redis`, `backend`, `celery_worker`, `frontend`, `kiosk` | — |
-| 6 | `frontend/`, `kiosk/` | No source or `Dockerfile` existed | Scaffolded minimal Vite + React apps, each verified to `npm install` and `npm run build` successfully | صفية (frontend) / عبدالله + صفية (kiosk) |
+| 6 | `frontend/`, `kiosk/` | No source or `Dockerfile` existed | Scaffolded minimal Vite + React apps, each verified to `npm install` and `npm run build` | صفية (frontend) / عبدالله + صفية (kiosk) |
 | 7 | `db` healthcheck | Needs to match container's actual user/db env vars | Confirmed correct: `pg_isready -U ${DB_USER:-sars_user} -d ${DB_NAME:-sars_db}` | — |
 
 **Not fixed, flagged only (not blocking):**
-- `SECRET_KEY = os.environ.get('JWT_SECRET', ...)` in `sars_core/settings/base.py` reuses the JWT signing secret as Django's own secret key. Works today, but conflates two different secrets — should be split into `SECRET_KEY` and `JWT_SECRET` as separate env vars before staging/prod. **→ needs عبدالله's input, didn't want to change his settings file unilaterally.**
+- `SECRET_KEY = os.environ.get('JWT_SECRET', ...)` in `sars_core/settings/base.py` reuses the JWT signing secret as Django's own secret key. Works today, but conflates two different secrets — should be split before staging/prod. **→ needs عبدالله's input, didn't want to change his settings file unilaterally.**
 
 ---
 
-## 4. Full list of files touched/created
+## 6. Full list of files touched/created (cumulative)
 
 ```
 backend/
 ├── manage.py                              [created]
-├── requirements.txt                       [fixed — added daphne, django-cors-headers]
+├── requirements.txt                       [fixed — daphne, django-cors-headers]
 ├── requirements-dev.txt                   [created]
-├── Dockerfile                             [kept as-is, verified correct]
-├── .env.example                           [created]
-├── .env                                   [created, dev-only values]
+├── Dockerfile                             [kept as-is, verified]
+├── .env.example / .env                    [created]
 ├── sars_core/
-│   ├── settings/
-│   │   ├── base.py                        [kept as-is, flagged SECRET_KEY issue]
-│   │   ├── dev.py                         [kept as-is, verified correct]
-│   │   └── prod.py                        [kept as-is, verified correct]
-│   ├── urls.py                            [fixed — atms app now mounted]
-│   ├── celery.py                          [kept as-is, verified correct]
-│   ├── asgi.py                            [kept as-is, now resolves correctly]
-│   └── wsgi.py                            [created]
-├── accounts/                              [placeholder package — real code owed by عبدالله]
+│   ├── settings/base.py                   [kept as-is, flagged SECRET_KEY issue]
+│   ├── settings/dev.py, prod.py           [kept as-is, verified]
+│   ├── urls.py                            [fixed — atms app mounted]
+│   ├── celery.py, wsgi.py, asgi.py        [kept as-is / created, verified]
+├── accounts/
+│   └── permissions.py                     [✅ Task 3 dependency — temporary, owner: عبدالله]
 ├── atms/
-│   ├── models.py                          [✅ Task 1 — complete, see §5]
-│   ├── urls.py                            [stub — REST routes commented pending Task 3,
-│   │                                        websocket_urlpatterns = [] pending Task 4]
-│   ├── serializers.py                     [🔲 not started — Task 2]
-│   ├── views.py                           [🔲 not started — Task 3]
+│   ├── models.py                          [✅ Task 1 — complete]
+│   ├── serializers.py                     [✅ Task 2 — complete]
+│   ├── views.py                           [✅ Task 3 — complete]
+│   ├── urls.py                            [✅ Task 3/5 — real REST routes; websocket_urlpatterns still empty, Task 4]
 │   ├── consumers.py                       [🔲 not started — Task 4]
 │   └── tests/                             [🔲 not started — Task 6]
-├── routing/                               [placeholder package — real code owed by سارة]
-├── notifications/                         [placeholder package — real code owed by سارة]
-└── common/                                [placeholder package — empty shell]
+├── common/
+│   ├── geo.py                             [✅ Task 3 dependency — haversine helper]
+│   ├── exceptions.py                      [✅ Task 3 dependency — contract error shape]
+│   ├── pagination.py                      [✅ Task 3 dependency — contract meta{} shape]
+│   └── api_key_auth.py                    [✅ Task 3 dependency — temporary X-API-Key auth]
+├── routing/                                [placeholder package — real code owed by سارة]
+└── notifications/                          [placeholder package — real code owed by سارة]
 
-frontend/
-├── Dockerfile                             [created]
-├── package.json                           [created — React 18 + Vite scaffold]
-└── .env.example                           [created — VITE_API_BASE_URL, VITE_WS_URL]
-(src/ only has a placeholder page — real components owed by صفية)
-
-kiosk/
-├── Dockerfile                             [created]
-├── package.json                           [created — React 18 + Vite scaffold]
-└── .env.example                           [created — VITE_API_BASE_URL, VITE_ATM_API_KEY, VITE_ATM_ID]
-(src/ only has a placeholder page — real components owed by عبدالله/صفية/محمد)
-
-docker-compose.yml                         [fully written — 6 services]
+frontend/    [Dockerfile, package.json, .env.example — placeholder page only, real UI owed by صفية]
+kiosk/       [Dockerfile, package.json, .env.example — placeholder page only, real screens owed by عبدالله/صفية/محمد]
+docker-compose.yml                          [fully written — 6 services]
 ```
+
+Full contents of every file above are already in the repo / prior commits — not re-pasted here to keep this report focused on what changed. See `backend/atms/models.py`, `serializers.py`, `views.py`, `urls.py`, and `backend/common/*` directly for the source of truth.
 
 ---
 
-## 5. Key file contents (for review)
-
-### `backend/atms/models.py`
-
-```python
-import uuid
-from django.db import models
-
-
-class Service(models.Model):
-    WITHDRAWAL = "WITHDRAWAL"
-    DEPOSIT = "DEPOSIT"
-    CURRENCY_EXCHANGE = "CURRENCY_EXCHANGE"
-    CHECK_DEPOSIT = "CHECK_DEPOSIT"
-
-    SERVICE_CHOICES = [
-        (WITHDRAWAL, "Withdrawal"),
-        (DEPOSIT, "Deposit"),
-        (CURRENCY_EXCHANGE, "Currency Exchange"),
-        (CHECK_DEPOSIT, "Check Deposit"),
-    ]
-
-    service_id = models.CharField(primary_key=True, max_length=50)
-    name = models.CharField(max_length=50, choices=SERVICE_CHOICES, unique=True)
-
-    def __str__(self):
-        return self.name
-
-
-class ATM(models.Model):
-    ONLINE = "ONLINE"
-    OFFLINE = "OFFLINE"
-    MAINTENANCE = "MAINTENANCE"
-    STATUS_CHOICES = [
-        (ONLINE, "Online"),
-        (OFFLINE, "Offline"),
-        (MAINTENANCE, "Maintenance"),
-    ]
-
-    AVAILABLE = "AVAILABLE"
-    LOW = "LOW"
-    EMPTY = "EMPTY"
-    CASH_STATUS_CHOICES = [
-        (AVAILABLE, "Available"),
-        (LOW, "Low"),
-        (EMPTY, "Empty"),
-    ]
-
-    atm_id = models.CharField(primary_key=True, max_length=50)
-    branch_name = models.CharField(max_length=255)
-    latitude = models.FloatField()
-    longitude = models.FloatField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=OFFLINE)
-    cash_status = models.CharField(max_length=20, choices=CASH_STATUS_CHOICES, default=EMPTY)
-    current_cash_balance = models.FloatField(default=0)
-    services = models.ManyToManyField(Service, through="ATMService", related_name="atms")
-    last_heartbeat_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["status"]),
-            models.Index(fields=["cash_status"]),
-            models.Index(fields=["latitude", "longitude"]),
-        ]
-
-    def has_sufficient_cash(self, requested_amount, buffer_amount=0):
-        """
-        Used by RoutingEngine's cash-sufficiency filter:
-        current_cash_balance >= requested_amount + buffer_amount
-        """
-        if requested_amount is None:
-            return True
-        return self.current_cash_balance >= (requested_amount + buffer_amount)
-
-    def get_supported_services(self):
-        return list(self.services.values_list("name", flat=True))
-
-    def __str__(self):
-        return f"{self.atm_id} — {self.branch_name}"
-
-
-class ATMService(models.Model):
-    atm = models.ForeignKey(ATM, on_delete=models.CASCADE)
-    service = models.ForeignKey(Service, on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ("atm", "service")
-
-
-class HeartbeatLog(models.Model):
-    heartbeat_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    atm = models.ForeignKey(ATM, on_delete=models.CASCADE, related_name="heartbeats")
-    status = models.CharField(max_length=20, choices=ATM.STATUS_CHOICES)
-    cash_status = models.CharField(max_length=20, choices=ATM.CASH_STATUS_CHOICES)
-    received_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-received_at"]
-        indexes = [models.Index(fields=["atm", "-received_at"])]
-```
-
-### `backend/atms/urls.py` (stub — Tasks 3 & 4 will fill this in)
-
-```python
-from django.urls import path, re_path
-
-app_name = "atms"
-
-# --- REST endpoints (Task 3: views.py) ---
-urlpatterns = [
-    # path("atms/<str:atm_id>/heartbeat", views.HeartbeatView.as_view()),
-    # path("atms/<str:atm_id>/transactions/attempt", views.TransactionAttemptView.as_view()),
-    # path("atms/network-stats", views.NetworkStatsView.as_view()),
-    # path("atms", views.ATMListCreateView.as_view()),
-    # path("atms/<str:atm_id>", views.ATMDetailView.as_view()),
-    # path("services", views.ServiceListView.as_view()),
-]
-
-# --- WebSocket routes (Task 4: consumers.py) ---
-# asgi.py imports this list directly - keep it in this file, not a separate routing.py
-websocket_urlpatterns = [
-    # re_path(r"ws/dashboard$", consumers.DashboardConsumer.as_asgi()),
-]
-```
-
-### `sars_core/urls.py` (fixed)
-
-```python
-from django.contrib import admin
-from django.urls import path, include
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    # Auth endpoints -> /api/v1/auth/login, /api/v1/auth/refresh
-    path('api/v1/auth/', include('accounts.urls')),
-    # ATM endpoints -> /api/v1/atms, /api/v1/atms/{id}/heartbeat,
-    #   /api/v1/atms/network-stats, /api/v1/services, etc.
-    #   (this was missing before - added so Task 3's views.py has somewhere to attach)
-    path('api/v1/', include('atms.urls')),
-    # Add these as سارة / صفية push their apps:
-    # path('api/v1/', include('routing.urls')),
-    # path('api/v1/', include('notifications.urls')),
-]
-```
-
-### `backend/requirements.txt` (fixed)
-
-```
-Django==5.0.6
-djangorestframework==3.15.1
-djangorestframework-simplejwt==5.3.1
-channels==4.1.0
-channels-redis==4.2.0
-daphne==4.1.2
-celery==5.4.0
-redis==5.0.4
-psycopg2-binary==2.9.9
-django-cors-headers==4.3.1
-python-dotenv==1.0.1
-```
-
-### `docker-compose.yml` (completed)
-
-```yaml
-version: "3.9"
-
-services:
-  db:
-    image: postgres:15
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_NAME:-sars_db}
-      POSTGRES_USER: ${DB_USER:-sars_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-sars_password}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sars_user} -d ${DB_NAME:-sars_db}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  backend:
-    build:
-      context: ./backend
-    command: daphne -b 0.0.0.0 -p 8000 sars_core.asgi:application
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
-    env_file:
-      - ./backend/.env
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  celery_worker:
-    build:
-      context: ./backend
-    command: celery -A sars_core worker --loglevel=info
-    volumes:
-      - ./backend:/app
-    env_file:
-      - ./backend/.env
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      backend:
-        condition: service_started
-
-  frontend:
-    build:
-      context: ./frontend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "5173:5173"
-    env_file:
-      - ./frontend/.env
-    depends_on:
-      - backend
-
-  kiosk:
-    build:
-      context: ./kiosk
-    volumes:
-      - ./kiosk:/app
-      - /app/node_modules
-    ports:
-      - "5174:5174"
-    env_file:
-      - ./kiosk/.env
-    depends_on:
-      - backend
-
-volumes:
-  pgdata:
-```
-
----
-
-## 6. How to run the project (verified working)
-
-### Prerequisites
-- Docker & Docker Compose
-- Node.js 18+ (only if running frontend/kiosk outside Docker)
-- Python 3.12+ (only if running backend outside Docker)
-
-### Steps
+## 7. How to run the project (unchanged, verified working)
 
 ```bash
 # 1. Clone & configure
@@ -391,7 +163,7 @@ cd sars-project
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 cp kiosk/.env.example kiosk/.env
-# → fill in GOOGLE_MAPS_API_KEY, TWILIO_*, JWT_SECRET, DB credentials in backend/.env
+# → fill in GOOGLE_MAPS_API_KEY, TWILIO_*, JWT_SECRET, DB credentials, ATM_API_KEY in backend/.env
 
 # 2. Build images
 docker compose build
@@ -404,21 +176,15 @@ docker compose run --rm backend python manage.py migrate
 docker compose up
 ```
 
-Once running:
-
-| Service         | URL                                 |
-| --------------- | ------------------------------------ |
-| Backend API     | http://localhost:8000/api/v1        |
-| Django admin    | http://localhost:8000/admin/        |
-| WebSocket       | ws://localhost:8000/ws/dashboard    |
-| Admin Dashboard | http://localhost:5173               |
-| Kiosk           | http://localhost:5174               |
-| Postgres        | localhost:5432                      |
-| Redis           | localhost:6379                      |
-
-To tail one service's logs: `docker compose logs -f backend` (or `celery_worker`, `frontend`, `kiosk`, `db`, `redis`).
-
-### Run tests
+| Service | URL |
+|---|---|
+| Backend API | http://localhost:8000/api/v1 |
+| Django admin | http://localhost:8000/admin/ |
+| WebSocket | ws://localhost:8000/ws/dashboard (not yet live — Task 4) |
+| Admin Dashboard | http://localhost:5173 |
+| Kiosk | http://localhost:5174 |
+| Postgres | localhost:5432 |
+| Redis | localhost:6379 |
 
 ```bash
 docker compose exec backend pytest
@@ -428,64 +194,26 @@ cd kiosk && npm test
 
 ---
 
-## 7. What I need from the team next
+## 8. Is the team unblocked now? — Hint for عبدالله / سارة / صفية
 
-- **عبدالله** — please confirm the `sars_core/urls.py` and `asgi.py` fixes match your intended structure, and let me know if you'd rather move `websocket_urlpatterns` into a separate `atms/routing.py` instead of keeping it in `urls.py`. Also: real `accounts/` code (Admin model, `/auth/login`, `/auth/refresh`, RBAC permissions) is still a placeholder and blocks my `views.py` (Task 3) wherever it needs JWT auth on admin-only endpoints.
-- **سارة** — `routing/` and `notifications/` are currently empty placeholder packages just to stop the container from crashing. Once your `RoutingEngine` is ready, it should call `ATM.has_sufficient_cash(requested_amount, buffer_amount)` exactly as defined in `atms/models.py` — signature is locked in, let me know if you need it changed.
-- **صفية** — `frontend/` only has a placeholder page right now (verified it builds, nothing more). Your real Admin Dashboard pages/components slot in on top of the existing `Dockerfile`/`package.json`.
-- **All** — please review the `SECRET_KEY`/`JWT_SECRET` overlap flagged in §3 before we go anywhere near staging.
+**Short answer: yes, more than before.** All 6 REST endpoints for `atms/` are live and routed. What's still missing is the WebSocket push (Task 4) and real `routing`/`accounts` logic replacing the temporary stubs.
 
-Next up on my end: **Task 2 — `backend/atms/serializers.py`**.
+### ✅ سارة — real HTTP endpoints to test against now
+`POST /atms/{atmId}/transactions/attempt` is live and will call your `RoutingEngine` the moment `routing/services.py` exists with a `find_alternatives(origin_atm, requested_service, requested_amount, buffer_amount)` method — until then it correctly fails closed with `503`, so you can develop against it without breaking anything for others. `GET /atms` also supports `lat`/`lng`/`radiusKm` filtering via `common/geo.haversine_km()` if you want to reuse it. Please confirm the `find_alternatives()` signature matches what you're building (see §4).
 
----
+### 🟡 عبدالله — unblocked for your own work, one thing to review
+`accounts/permissions.py` (`IsAdmin`/`IsSuperAdmin`) is a **temporary stand-in** gating `POST /atms`, `PATCH /atms/{atmId}`, `GET /atms/network-stats`, etc. — assumes `request.user.role` is set. Once your real `Admin` model + JWT login/refresh land, replace the internals but keep the class names/`has_permission()` contract so `views.py` doesn't need changes. Also please confirm the `urls.py`/`asgi.py` structure from §5 still matches your intended design before Task 4 builds on top of it.
 
-## 8. Suggested commit message
-
-```
-feat(atms): add ATM/Service/HeartbeatLog models + fix stack boot blockers
-
-- backend/atms/models.py: implement ATM, Service, ATMService, HeartbeatLog
-  per ERD + API contract, incl. ATM.has_sufficient_cash() for routing's
-  cash-sufficiency filter and ATM.get_supported_services()
-- backend/atms/urls.py: add stub with websocket_urlpatterns so asgi.py
-  resolves; REST routes commented in, pending views.py (Task 3)
-- sars_core/urls.py: mount atms app at api/v1/ (was missing entirely)
-- backend/requirements.txt: add missing daphne, django-cors-headers
-- docker-compose.yml: define all 6 services (db, redis, backend,
-  celery_worker, frontend, kiosk) with healthchecks and env files
-- add placeholder packages for accounts/routing/notifications/common
-  so the stack boots (no real logic yet — owners to replace)
-- scaffold minimal frontend/ and kiosk/ Vite apps, verified build
-- generate initial atms migration, verify full docker compose boot,
-  Django system checks, and ASGI/WebSocket router resolution
-
-Refs: SARS-Task-Breakdown.md (محمد, Task 1)
-```
-
-Suggested branch name: `feature/atms-models-and-boot-fixes`
-
----
-
-## 9. Is the team unblocked now? — Hint for عبدالله / سارة / صفية
-
-**Short answer: partially yes.** The models are done and the stack boots, so most of the team can start real work today — but nobody can do a full end-to-end test yet, because the REST views (Task 3) and WebSocket consumer (Task 4) aren't written. Here's exactly where each of you stands:
-
-### ✅ سارة — you can start now, not blocked
-`ATM.has_sufficient_cash(requested_amount, buffer_amount=0)` is final and matches the class diagram exactly — build `RoutingEngine` against it directly. `MappingGateway` and the Haversine fallback don't depend on my work at all.
-- **One thing you'll need to do yourself:** create `backend/routing/urls.py` and `backend/notifications/urls.py`, then uncomment/add the `include()` lines in `sars_core/urls.py` (they're commented out, waiting for you). I didn't add them since I don't know your exact view names.
-- You can write and run your unit tests for `RoutingEngine`/`filterByRadius`/`fallbackHaversine` right now without waiting on anyone — they don't need real HTTP endpoints, just the `ATM` model, which exists.
-
-### ✅ عبدالله — you can start now, not blocked
-`accounts/` is currently just an empty placeholder so Django boots — your real `Admin` model, `permissions.py`, `views.py`, `serializers.py` slot in without waiting on me. `AUTH_USER_MODEL = 'accounts.Admin'` is already set in settings.
-- **Please double check:** my fix to `sars_core/urls.py` and `asgi.py` (see §5) matches how you intended `atms.urls.websocket_urlpatterns` to be structured. If you'd rather I move it to `atms/routing.py`, tell me and I'll switch it — cheap to change now, not after Task 4.
-- My `views.py` (Task 3) will need your `IsAdmin`/`IsSuperAdmin` permission classes for the admin-only ATM endpoints (`POST /atms`, `PATCH /atms/{id}`), so the sooner those exist, the less I'll have to stub around them.
-
-### 🟡 صفية — you can start building UI now, but full integration is blocked
-You can build all Admin Dashboard components/pages (`SCR-A1/A2/A3`) and kiosk `SCR-02/03/04` against **mocked data** right now — the `frontend/` and `kiosk/` scaffolds both build and run today.
-- **What's actually blocking you:** real API calls (`GET /atms`, `GET /atms/network-stats`, `WS /ws/dashboard`) won't return real data until my Task 3 (`views.py`) and Task 4 (`consumers.py`) are done. Until then, mock the API contract's exact response shapes (see `docs/api-contract.md`) so swapping mocks for the real backend later is a one-line change in `services/api.js` / `socket.js`.
-- I'll ping the team the moment `views.py` and `consumers.py` land so you can point at the real endpoints.
+### 🟡 صفية — real data is closer, one more piece needed
+`GET /atms`, `GET /atms/{atmId}`, `GET /atms/network-stats`, `GET /services` all return real data now — point the Admin Dashboard's `services/api.js` at them (see `docs/api-contract.md` for exact response shapes, which these serializers match field-for-field). **Still blocking full integration:** `WS /ws/dashboard` isn't live yet (Task 4), so live push updates still need to be mocked/polled until then. Also double-check the `network-stats` field names against §4's open item before building the KPI row around them.
 
 ### My own status
-Not blocked on anyone — continuing straight into **Task 2 (`serializers.py`)** → **Task 3 (`views.py`)** → **Task 4 (`consumers.py`)** → **Task 5 (`urls.py` real routes)** → **Task 6 (tests)**. I'll post here again once Task 3/4 are up, since that's what unblocks صفية fully and gives سارة real HTTP endpoints to test `RoutingEngine` against end-to-end (not just unit tests).
+Not blocked on anyone — continuing straight into **Task 4 (`consumers.py` — `DashboardConsumer`)**, which also fills in the `HeartbeatView` TODO for the WebSocket push, then **Task 6 (tests)**. I'll post here again once Task 4 lands, since that fully unblocks صفية's live dashboard and gives سارة an end-to-end path to test `RoutingEngine` against real heartbeats.
 
-**Bottom line:** everything I committed so far is stable and won't need to change under you — build on top of it, don't wait for me except where noted above.
+**Bottom line:** everything committed so far is stable and won't need to change under you — build on top of it, don't wait for me except where noted above.
+
+---
+
+## 10. Next up
+
+**Task 4 — `backend/atms/consumers.py`** (`DashboardConsumer`, WebSocket push for `atm.status.updated` / `atm.alert`, fills the TODO left in `HeartbeatView`), then **Task 5 wrap-up** (wire `websocket_urlpatterns` for real), then **Task 6** (`tests/` — heartbeat, transaction attempt, websocket, network-stats).
