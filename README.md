@@ -16,6 +16,21 @@ The system has three moving parts:
 
 ---
 
+# SARS Project - Timeline
+
+| Task Name | Date |
+|---|---|
+| Planning, Architecture Design & API Contract | Aug 8 - Aug 15 |
+| Infrastructure Setup, Docker & Auth | Aug 16 - Aug 24 |
+| **Admin Dashboard & Kiosk UI  | Aug 25 - Sep 1 |
+| Routing Engine & SMS Module | Aug 28 - Sep 4 |
+| ATM Management, Transactions & WebSockets | Sep 2 - Sep 8 |
+| API Integration (Frontend & Kiosk) | Sep 9 - Sep 14 |
+| Testing & Bug Fixing | Sep 15 - Sep 18 |
+| Final Review, Deployment & Handover | Sep 19 - Sep 20 |
+
+
+
 ## Architecture Overview
 
 ```
