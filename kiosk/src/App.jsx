@@ -1,8 +1,42 @@
-export default function App() {
+import React from "react";
+import { useSessionStore } from "./store/sessionSlice";
+import SelectService from "./pages/SelectService";
+
+function App() {
+  const step = useSessionStore((state) => state.step);
+
   return (
-    <div style={{ fontFamily: "sans-serif", padding: "2rem" }}>
-      <h1>SARS ATM Kiosk</h1>
-      <p>Container is up. Your screens (SelectService, PhoneNumberEntry, Confirmation, etc.) go in src/pages/.</p>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#0B1120",
+        fontFamily: "sans-serif",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: "400px" }}>
+        {step === 1 && <SelectService />}
+
+        {step === 2 && (
+          <div style={{ color: "white", textAlign: "center", padding: "20px" }}>
+            جاري التحقق من حالة الماكينة... (شاشة صفية)
+          </div>
+        )}
+        {step === 3 && (
+          <div style={{ color: "white", textAlign: "center", padding: "20px" }}>
+            الخدمة غير متاحة مؤقتاً (شاشة صفية)
+          </div>
+        )}
+        {step > 3 && (
+          <div style={{ color: "white", textAlign: "center", padding: "20px" }}>
+            باقي الخطوات...
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
+export default App;
