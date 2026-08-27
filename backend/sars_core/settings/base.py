@@ -2,9 +2,7 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
-SECRET_KEY = os.environ.get('JWT_SECRET', 'django-insecure-sars-default-key')
-
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-sars-default-key')
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
