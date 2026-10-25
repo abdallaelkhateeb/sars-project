@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  background: linear-gradient(135deg, #e8fbf6 0%, #f6f1fb 50%, #e6f6fb 100%);
+  min-height: 100vh;
+  color: #0f172a;
+}
