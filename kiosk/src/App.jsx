@@ -1,6 +1,9 @@
 import React from "react";
 import { useSessionStore } from "./store/sessionSlice";
 import SelectService from "./pages/SelectService";
+import CheckingStatus from "./pages/CheckingStatus";
+import MachineUnavailable from "./pages/MachineUnavailable";
+import AlternativeMachines from "./pages/AlternativeMachines";
 
 function App() {
   const step = useSessionStore((state) => state.step);
@@ -18,18 +21,10 @@ function App() {
     >
       <div style={{ width: "100%", maxWidth: "400px" }}>
         {step === 1 && <SelectService />}
-
-        {step === 2 && (
-          <div style={{ color: "white", textAlign: "center", padding: "20px" }}>
-            جاري التحقق من حالة الماكينة... (شاشة صفية)
-          </div>
-        )}
-        {step === 3 && (
-          <div style={{ color: "white", textAlign: "center", padding: "20px" }}>
-            الخدمة غير متاحة مؤقتاً (شاشة صفية)
-          </div>
-        )}
-        {step > 3 && (
+        {step === 2 && <CheckingStatus />}
+        {step === 3 && <MachineUnavailable />}
+        {step === 4 && <AlternativeMachines />}
+        {step > 4 && (
           <div style={{ color: "white", textAlign: "center", padding: "20px" }}>
             باقي الخطوات...
           </div>

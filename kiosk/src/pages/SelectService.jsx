@@ -4,6 +4,8 @@ import { attemptTransaction } from "../services/api";
 import ServiceGrid from "../components/ServiceGrid";
 import AmountPad from "../components/AmountPad";
 
+const MIN_LOADING_MS = 1200; // أقل مدة تفضل فيها شاشة اللود ظاهرة
+
 export default function SelectService() {
   const [selectedService, setSelectedService] = useState("WITHDRAWAL");
   const [amount, setAmount] = useState("");
@@ -17,11 +19,20 @@ export default function SelectService() {
     // نقل الـ state لشاشة التحميل (SCR-02) فوراً عشان نحقق الـ NFR الخاص بالـ 3 ثواني
     setRequestDetails(selectedService, Number(amount));
 
+    const startTime = Date.now();
+
     try {
       const response = await attemptTransaction(
         selectedService,
         Number(amount),
       );
+
+      // نضمن إن شاشة اللود تفضل ظاهرة مدة كافية حتى لو الرد جه بسرعة
+      const elapsed = Date.now() - startTime;
+      const remaining = MIN_LOADING_MS - elapsed;
+      if (remaining > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
 
       if (response.outcome === "REDIRECT") {
         // لو الماكينة فيها مشكلة، ننقله لشاشة SCR-03
@@ -33,6 +44,13 @@ export default function SelectService() {
       }
     } catch (error) {
       console.error("Transaction failed:", error);
+
+      const elapsed = Date.now() - startTime;
+      const remaining = MIN_LOADING_MS - elapsed;
+      if (remaining > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
+
       // في حالة فشل الاتصال بالسيرفر
       setRedirect("OFFLINE", []);
     }
