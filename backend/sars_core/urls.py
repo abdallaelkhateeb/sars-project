@@ -11,5 +11,5 @@ urlpatterns = [
     path('api/v1/', include('atms.urls')),
     # Add these as سارة / صفية push their apps:
     # path('api/v1/', include('routing.urls')),
-    # path('api/v1/', include('notifications.urls')),
+    path("api/v1/", include("notifications.urls")),
 ]

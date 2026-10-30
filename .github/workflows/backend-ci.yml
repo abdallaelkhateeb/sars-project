@@ -15,6 +15,40 @@ jobs:
       run:
         working-directory: ./backend
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sars_user
+          POSTGRES_PASSWORD: sars_password
+          POSTGRES_DB: sars_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sars_user -d sars_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_NAME: sars_db
+      DB_USER: sars_user
+      DB_PASSWORD: sars_password
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      REDIS_URL: redis://localhost:6379/0
+      ATM_API_KEY: ci-test-key
+
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
