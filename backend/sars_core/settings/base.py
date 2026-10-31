@@ -152,9 +152,7 @@ CHANNEL_LAYERS = {
         },
     },
 }
-}
-# --- API key for ATM / kiosk requests (X-API-Key) ---
-ATM_API_KEY = os.environ.get('ATM_API_KEY')
+
 
 # --- SMS: "console" (dev: logs only) or "bank_http" (real gateway) ---
 SMS_PROVIDER = os.environ.get('SMS_PROVIDER', 'console')
