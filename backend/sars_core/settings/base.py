@@ -1,8 +1,21 @@
 import os
 from pathlib import Path
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-sars-default-key')
+
+
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-sars-default-key'
+)
+
+ATM_API_KEY = os.environ.get(
+    'ATM_API_KEY',
+    'sars-local-test-key'
+)
+
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -20,6 +33,7 @@ INSTALLED_APPS = [
     'common',
 ]
 
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -31,7 +45,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+
 ROOT_URLCONF = 'sars_core.urls'
+
 
 TEMPLATES = [
     {
@@ -49,8 +65,10 @@ TEMPLATES = [
     },
 ]
 
+
 WSGI_APPLICATION = 'sars_core.wsgi.application'
 ASGI_APPLICATION = 'sars_core.asgi.application'
+
 
 DATABASES = {
     'default': {
@@ -59,26 +77,43 @@ DATABASES = {
         'USER': os.environ.get('DB_USER', 'sars_user'),
         'PASSWORD': os.environ.get('DB_PASSWORD', 'sars_password'),
         'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+        'PORT': os.environ.get('DB_PORT', '5433'),
     }
 }
 
+
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
+    {
+        'NAME':
+            'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME':
+            'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME':
+            'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME':
+            'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
 ]
+
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
 AUTH_USER_MODEL = 'accounts.Admin'
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],
@@ -86,21 +121,37 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
-    'EXCEPTION_HANDLER': 'common.exceptions.custom_exception_handler'
+    'EXCEPTION_HANDLER': 'common.exceptions.custom_exception_handler',
 }
 
-CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+
+CELERY_BROKER_URL = os.environ.get(
+    'REDIS_URL',
+    'redis://localhost:6379/0'
+)
+
+CELERY_RESULT_BACKEND = os.environ.get(
+    'REDIS_URL',
+    'redis://localhost:6379/0'
+)
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379/0')],
+            "hosts": [
+                os.environ.get(
+                    'REDIS_URL',
+                    'redis://localhost:6379/0'
+                )
+            ],
         },
     },
+}
 }
 # --- API key for ATM / kiosk requests (X-API-Key) ---
 ATM_API_KEY = os.environ.get('ATM_API_KEY')
