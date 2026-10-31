@@ -1,0 +1,13 @@
+[flake8]
+max-line-length = 120
+exclude =
+    .git,
+    __pycache__,
+    migrations,
+    venv,
+    .venv
+# W292 = missing newline at end of file (cosmetic)
+extend-ignore = W292
+per-file-ignores =
+    sars_core/settings/*.py: F401,F403,E231
+    sars_core/asgi.py: E402
